@@ -18,7 +18,7 @@ import sys
 
 from language_coverage import check_language_coverage
 
-DEFAULT_LANGUAGES = ["yo", "fr", "en", "wo", "ha", "sw", "ig", "bm"]
+DEFAULT_LANGUAGES = ["yo", "fr", "en", "wo", "ha", "sw", "ig", "bm", "fon", "ajg"]
 
 
 def main():

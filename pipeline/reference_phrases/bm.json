@@ -1,0 +1,86 @@
+{
+  "language": "bm",
+  "language_name_fr": "Bambara",
+  "phrases": [
+    {
+      "id": 1,
+      "fr": "Bonjour, comment vas-tu ?",
+      "translation": "",
+      "register": "courant",
+      "validated_by_native": false,
+      "contact": ""
+    },
+    {
+      "id": 2,
+      "fr": "Je vais bien, merci.",
+      "translation": "",
+      "register": "courant",
+      "validated_by_native": false,
+      "contact": ""
+    },
+    {
+      "id": 3,
+      "fr": "Comment va la famille ?",
+      "translation": "",
+      "register": "courant",
+      "validated_by_native": false,
+      "contact": ""
+    },
+    {
+      "id": 4,
+      "fr": "On se voit demain matin.",
+      "translation": "",
+      "register": "courant",
+      "validated_by_native": false,
+      "contact": ""
+    },
+    {
+      "id": 5,
+      "fr": "Merci beaucoup pour ton aide.",
+      "translation": "",
+      "register": "courant",
+      "validated_by_native": false,
+      "contact": ""
+    },
+    {
+      "id": 6,
+      "fr": "Je reviens tout de suite.",
+      "translation": "",
+      "register": "courant",
+      "validated_by_native": false,
+      "contact": ""
+    },
+    {
+      "id": 7,
+      "fr": "Tu as bien mangé ?",
+      "translation": "",
+      "register": "courant",
+      "validated_by_native": false,
+      "contact": ""
+    },
+    {
+      "id": 8,
+      "fr": "Prends soin de toi.",
+      "translation": "",
+      "register": "courant",
+      "validated_by_native": false,
+      "contact": ""
+    },
+    {
+      "id": 9,
+      "fr": "Bonne nuit.",
+      "translation": "",
+      "register": "courant",
+      "validated_by_native": false,
+      "contact": ""
+    },
+    {
+      "id": 10,
+      "fr": "À bientôt.",
+      "translation": "",
+      "register": "courant",
+      "validated_by_native": false,
+      "contact": ""
+    }
+  ]
+}

@@ -37,6 +37,7 @@ MYMEMORY_LANG_MAP = {
     "sw": "sw-KE",   # swahili
     "ig": "ig-NG",   # igbo
     "bm": "bm-ML",   # bambara
+    "fon": "fon-BJ", # fon (Bénin) — confirmé dans la liste MyMemory
 }
 
 # Caches en mémoire (par exécution) pour éviter de refaire les mêmes

@@ -29,6 +29,7 @@ internet la première fois, mais plus ensuite (modèle mis en cache localement).
 """
 
 import argparse
+import json
 import os
 import sys
 import time
@@ -41,6 +42,36 @@ from language_coverage import (
     check_language_coverage,
     mms_model_name,
 )
+
+REFERENCE_PHRASES_DIR = Path(__file__).parent / "reference_phrases"
+
+
+def load_validated_examples(target_lang: str, min_examples: int = 3) -> list:
+    """Charge les phrases de référence validées par un locuteur natif pour
+    cette langue, si le fichier existe et contient assez d'exemples validés.
+
+    Retourne une liste vide si rien n'est encore validé (comportement par
+    défaut tant que personne n'a rempli reference_phrases/<code>.json).
+    """
+    path = REFERENCE_PHRASES_DIR / f"{target_lang}.json"
+    if not path.exists():
+        return []
+
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        return []
+
+    validated = [
+        p for p in data.get("phrases", [])
+        if p.get("validated_by_native") and p.get("translation")
+    ]
+
+    if len(validated) < min_examples:
+        return []
+
+    return validated
 
 load_dotenv()
 
@@ -123,6 +154,116 @@ def translate_text(text: str, source_lang: str, target_lang: str) -> str:
     return translated
 
 
+# Noms des langues en français, pour construire des prompts clairs.
+LANG_NAMES_FR = {
+    "yo": "yoruba",
+    "fr": "français",
+    "en": "anglais",
+    "wo": "wolof",
+    "ha": "haoussa",
+    "sw": "swahili",
+    "ig": "igbo",
+    "bm": "bambara",
+    "fon": "fon",
+}
+
+
+def translate_text_llm(text: str, target_lang: str, model: str = "openai/gpt-oss-120b") -> str:
+    """Traduction alternative via un LLM (Groq), avec consigne explicite de
+    registre familier/parlé.
+
+    Contrairement à Google Translate/MyMemory (qui reproduisent le registre
+    dominant de leurs données d'entraînement — souvent des textes religieux
+    pour les langues africaines peu dotées, d'où un ton "soutenu"), on
+    demande ici explicitement une traduction courante, de tous les jours.
+
+    ATTENTION : pour une langue aussi peu dotée que le fon, un LLM peut
+    "halluciner" du vocabulaire de façon fluide mais incorrecte. À valider
+    impérativement par un locuteur natif avant de faire confiance au résultat
+    — plus encore que pour la traduction classique.
+    """
+    from groq import Groq
+
+    if not GROQ_API_KEY:
+        raise EnvironmentError("GROQ_API_KEY manquant dans l'environnement (.env)")
+
+    client = Groq(api_key=GROQ_API_KEY)
+    target_name = LANG_NAMES_FR.get(target_lang, target_lang)
+
+    print(f"[2/3] Traduction (LLM, registre familier) vers le {target_name} ...")
+    t0 = time.time()
+
+    examples = load_validated_examples(target_lang)
+
+    if examples:
+        print(f"    -> {len(examples)} exemple(s) validé(s) par un natif utilisés comme repère.")
+        examples_block = "\n".join(
+            f"Français : {ex['fr']}\n{target_name.capitalize()} : {ex['translation']}"
+            for ex in examples
+        )
+        prompt = (
+            f"Voici des exemples authentiques de traduction en {target_name} "
+            f"parlé courant, validés par un locuteur natif :\n\n{examples_block}\n\n"
+            f"En suivant EXACTEMENT ce même style et cette même langue (pas une "
+            f"langue voisine), traduis la phrase suivante :\n\n"
+            f"Français : {text}\n{target_name.capitalize()} :"
+        )
+    else:
+        print(
+            "    -> Aucun exemple validé pour cette langue (voir "
+            "reference_phrases/) : traduction générique, risque de mélange "
+            "avec une langue voisine, à valider impérativement."
+        )
+        prompt = (
+            f"Tu es un locuteur natif du {target_name}, qui parle au quotidien "
+            f"avec sa famille et ses amis. Traduis la phrase suivante en {target_name} "
+            f"PARLÉ COURANT — pas en registre soutenu, littéraire ou religieux. "
+            f"Réponds uniquement avec la traduction, sans aucun commentaire ni "
+            f"explication.\n\nPhrase à traduire : {text}"
+        )
+
+    try:
+        response = client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+        )
+    except Exception as e:
+        # Le catalogue de modèles Groq change régulièrement (dépréciations
+        # fréquentes) -> plutôt que de deviner un autre nom, on affiche la
+        # vraie liste des modèles accessibles sur CE compte.
+        try:
+            available = [m.id for m in client.models.list().data]
+        except Exception:
+            available = ["(impossible de récupérer la liste, vérifie ta connexion)"]
+
+        raise RuntimeError(
+            f"Le modèle '{model}' n'est pas accessible sur ton compte Groq ({e}).\n"
+            f"Modèles actuellement disponibles : {available}\n"
+            f"Relance avec, par exemple : --llm-model {available[0] if available else '<nom>'}"
+        ) from e
+
+    translated = response.choices[0].message.content.strip()
+
+    elapsed = time.time() - t0
+    print(f"    -> Terminé en {elapsed:.1f}s")
+    print(f"    -> Texte traduit : {translated}")
+    if examples:
+        print(
+            "    -> Traduction guidée par des exemples validés — fiabilité "
+            "nettement meilleure, mais fais quand même confirmer le résultat "
+            "final par ton contact natif."
+        )
+    else:
+        print(
+            "    -> /!\\ Traduction expérimentale (LLM, sans exemple validé) : "
+            "fais-la valider par un locuteur natif, risque de mélange avec "
+            "une langue voisine."
+        )
+
+    return translated
+
+
 def _get_mms_model(target_lang: str):
     """Charge (et met en cache en mémoire) le modèle MMS-TTS pour une langue.
 
@@ -183,7 +324,7 @@ def synthesize_speech(text: str, target_lang: str, output_path: str) -> str:
     return output_path
 
 
-def run_pipeline(audio_path: str, target_lang: str, output_path: str = None):
+def run_pipeline(audio_path: str, target_lang: str, output_path: str = None, translator: str = "mt", llm_model: str = "openai/gpt-oss-120b"):
     if output_path is None:
         output_path = f"output_{target_lang}.wav"
 
@@ -204,9 +345,12 @@ def run_pipeline(audio_path: str, target_lang: str, output_path: str = None):
     print()
 
     stt_result = transcribe_audio(audio_path)
-    translated_text = translate_text(
-        stt_result["text"], stt_result["language"], target_lang
-    )
+    if translator == "llm":
+        translated_text = translate_text_llm(stt_result["text"], target_lang, model=llm_model)
+    else:
+        translated_text = translate_text(
+            stt_result["text"], stt_result["language"], target_lang
+        )
     synthesize_speech(translated_text, target_lang, output_path)
 
     print("=" * 60)
@@ -229,10 +373,23 @@ if __name__ == "__main__":
     parser.add_argument("--audio", required=True, help="Chemin du fichier audio à traduire")
     parser.add_argument("--target-lang", required=True, help="Code langue cible (ex: yo, fr, en)")
     parser.add_argument("--output", help="Chemin du fichier audio de sortie")
+    parser.add_argument(
+        "--translator",
+        choices=["mt", "llm"],
+        default="mt",
+        help="'mt' = Google Translate/MyMemory (par défaut). "
+             "'llm' = Groq (registre familier explicite, expérimental).",
+    )
+    parser.add_argument(
+        "--llm-model",
+        default="openai/gpt-oss-120b",
+        help="Modèle Groq à utiliser avec --translator llm (le catalogue "
+             "Groq change régulièrement, ajuste si besoin).",
+    )
     args = parser.parse_args()
 
     if not os.path.exists(args.audio):
         print(f"Erreur : fichier introuvable -> {args.audio}")
         sys.exit(1)
 
-    run_pipeline(args.audio, args.target_lang, args.output)
+    run_pipeline(args.audio, args.target_lang, args.output, translator=args.translator, llm_model=args.llm_model)
