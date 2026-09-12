@@ -61,35 +61,58 @@ Génère `output_yo.wav`. Écoute-le et évalue :
 
 ## Langues validées à ce jour (traduction + voix confirmées par test réel)
 
-| Code | Langue | Testé le |
-|---|---|---|
-| `yo` | Yoruba | ✅ pipeline complet exécuté, validé par un locuteur natif |
-| `fr` | Français | ✅ couverture confirmée |
-| `en` | Anglais | ✅ couverture confirmée |
-| `ha` | Haoussa | ✅ couverture confirmée |
-| `sw` | Swahili | ✅ couverture confirmée |
-| `bm` | Bambara | ✅ couverture confirmée |
-| `am` | Amharique | ✅ couverture confirmée |
-| `so` | Somali | ✅ couverture confirmée |
-| `rw` | Kinyarwanda | ✅ couverture confirmée |
+| Code | Langue | Zone / famille | Statut |
+|---|---|---|---|
+| `yo` | Yoruba | Afrique de l'Ouest | ✅ pipeline complet exécuté, **validé par un locuteur natif** |
+| `fon` | Fon | Bénin | ✅ couverture confirmée (registre soutenu, voir note ci-dessous) |
+| `fr` | Français | — | ✅ couverture confirmée |
+| `en` | Anglais | — | ✅ couverture confirmée |
+| `ha` | Haoussa | Afrique de l'Ouest | ✅ couverture confirmée |
+| `sw` | Swahili | Afrique de l'Est | ✅ couverture confirmée |
+| `bm` | Bambara | Afrique de l'Ouest | ✅ couverture confirmée |
+| `am` | Amharique | Corne de l'Afrique | ✅ couverture confirmée |
+| `so` | Somali | Corne de l'Afrique | ✅ couverture confirmée |
+| `rw` | Kinyarwanda | Afrique de l'Est | ✅ couverture confirmée |
+| `ar` | Arabe | Afrique du Nord | ✅ couverture confirmée |
+| `om` | Oromo | Corne de l'Afrique | ✅ couverture confirmée |
+| `sn` | Shona | Afrique australe | ✅ couverture confirmée |
+| `ny` | Chichewa | Afrique australe | ✅ couverture confirmée |
+| `ak` | Akan / Twi | Afrique de l'Ouest | ✅ couverture confirmée |
+| `ti` | Tigrinya | Corne de l'Afrique | ✅ couverture confirmée |
+| `mg` | Malgache | Afrique de l'Est (Madagascar) | ✅ couverture confirmée |
+| `lg` | Luganda | Afrique de l'Est | ✅ couverture confirmée |
+| `ki` | Kikuyu | Afrique de l'Est | ✅ couverture confirmée |
+| `ee` | Éwé | Afrique de l'Ouest | ✅ couverture confirmée |
+| `ff` | Peul / Fulfulde | Afrique de l'Ouest/Sahel | ✅ couverture confirmée |
+| `rn` | Kirundi | Afrique de l'Est | ✅ couverture confirmée |
+
+**21 langues confirmées au total**, couvrant les principales zones du
+continent (Ouest, Est, Nord, australe, Corne de l'Afrique).
 
 **"Couverture confirmée"** signifie que les deux briques techniques
 (traduction + modèle MMS) existent — pas que la qualité a été jugée par un
-locuteur natif. Seul le yoruba a été validé à l'oreille pour l'instant.
+locuteur natif. **Seul le yoruba a été validé à l'oreille** par un natif
+pour l'instant. Le fon fonctionne mais dans un registre soutenu/littéraire
+(voir la section dédiée plus bas) — à améliorer avec de vraies
+contributions natives (voir `reference_phrases/`).
 
-## Langues explorées mais non couvertes par MMS pour l'instant
+## Langues avec traduction OK mais voix (MMS) manquante
 
 | Code | Langue | Constat |
 |---|---|---|
-| `wo` | Wolof | Traduction OK, mais **pas de modèle MMS individuel** publié sur Hugging Face (`facebook/mms-tts-wol` inexistant), malgré une couverture théorique dans la recherche MMS. |
-| `ig` | Igbo | Même situation (`facebook/mms-tts-ibo` inexistant, confirmé par test réel — erreur "Repository Not Found"). |
-| `zu` | Zoulou | Même situation (`facebook/mms-tts-zul` inexistant). |
+| `wo` | Wolof | Pas de modèle MMS individuel publié (`facebook/mms-tts-wol` inexistant). |
+| `ig` | Igbo | Idem (`facebook/mms-tts-ibo` inexistant, confirmé par erreur "Repository Not Found"). |
+| `zu` | Zoulou | Idem (`facebook/mms-tts-zul` inexistant). |
+| `af` | Afrikaans | Idem. |
+| `xh` | Xhosa | Idem. |
+| `ln` | Lingala | Idem. |
+| `st` | Sesotho | Idem. |
+| `tn` | Tswana | Idem. |
 
 **Ce que ça veut dire** : MMS couvre plus de 1000 langues dans sa recherche
 originale, mais Meta n'a pas forcément publié de dépôt Hugging Face
-individuel "prêt à l'emploi" pour chacune. Le nombre de langues réellement
-utilisables avec cette approche est donc plus proche de la liste validée
-ci-dessus que du chiffre "1000+" affiché par MMS.
+individuel "prêt à l'emploi" pour chacune. Pour ces 8 langues, la
+traduction fonctionne très bien — seule la voix manque.
 
 **Pistes pour ces langues, à explorer plus tard** :
 - Chercher un modèle TTS communautaire spécialisé (ex : un modèle SpeechT5
@@ -99,18 +122,40 @@ ci-dessus que du chiffre "1000+" affiché par MMS.
 - Accepter ces langues comme non prioritaires pour le MVP, à traiter dans
   une phase ultérieure.
 
-## Fon et Adja (langues cibles du Bénin) — à vérifier
+## Adja — non couverte pour l'instant
 
-Pas encore testées à ce stade. Prochaine étape : trouver leurs codes ISO
-639-3 exacts et lancer `check_coverage.py fon` (ou le code correct) pour
-savoir où on en est.
+| Code | Langue | Constat |
+|---|---|---|
+| `ajg` | Adja | Ni traduction (Google/MyMemory) ni voix (MMS) ne couvrent cette langue sous ce code. |
+
+Contrairement au fon (langue Gbe voisine), l'adja n'a pas encore de
+ressources numériques suffisantes dans les outils gratuits qu'on utilise.
+Nécessitera une approche différente (ressources communautaires, SIL) —
+voir `reference_phrases/ajg.json`, déjà prêt à recevoir des contributions
+natives le jour où ça devient une priorité.
+
+## Sur le registre du fon (et bientôt d'autres langues)
+
+Le fon fonctionne techniquement, mais Google Translate/MyMemory produisent
+un registre soutenu/littéraire (probablement hérité de corpus religieux
+utilisés pour entraîner ces langues peu dotées). Une tentative de
+traduction via LLM (`--translator llm`) pour obtenir un ton plus familier
+a produit un mélange avec des langues Gbe voisines (gun, éwé) sans
+prévenir — donc non fiable en l'état.
+
+La solution retenue : un système de "phrases de référence" validées par de
+vrais locuteurs natifs (voir `reference_phrases/README.md`), qui servent
+d'exemples pour guider le LLM une fois suffisamment remplies. Tant qu'il
+n'y en a pas assez, le pipeline reste sur la traduction classique (`mt`)
+par défaut — le choix le plus sûr aujourd'hui.
 
 ## Limites connues de ce prototype (normal à ce stade)
 
 - La traduction utilise Google Translate par défaut, qui est parfois
   instable (erreurs serveur), d'où le fallback automatique vers MyMemory.
-  Qualité variable selon les langues africaines — à comparer un jour avec
-  Lelapa AI ou NLLB-200 si besoin de mieux.
+  Qualité variable selon les langues africaines, et souvent en registre
+  soutenu — à comparer un jour avec Lelapa AI ou NLLB-200 si besoin de
+  mieux.
 - Pas de cache ni de gestion d'erreurs de niveau production : c'est un
   script de test, pas un service prêt à être déployé.
 - La vérification de couverture (`check_coverage.py`) confirme que les

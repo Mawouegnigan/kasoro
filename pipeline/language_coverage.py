@@ -27,18 +27,47 @@ MMS_CODE_OVERRIDES = {
 }
 
 # MyMemory attend un format "langue-PAYS" plutôt qu'un simple code langue.
-# À enrichir au fil de l'ajout de nouvelles langues cibles.
-MYMEMORY_LANG_MAP = {
-    "yo": "yo-NG",   # yoruba (Nigeria)
-    "fr": "fr-FR",
-    "en": "en-GB",
-    "wo": "wo-SN",   # wolof (Sénégal)
-    "ha": "ha-NE",   # haoussa
-    "sw": "sw-KE",   # swahili
-    "ig": "ig-NG",   # igbo
-    "bm": "bm-ML",   # bambara
-    "fon": "fon-BJ", # fon (Bénin) — confirmé dans la liste MyMemory
+# Exceptions connues où la résolution automatique (via la vraie liste
+# MyMemory) ne suffit pas ou donnerait un mauvais résultat.
+MYMEMORY_CODE_OVERRIDES = {
+    "sw": "sw-KE",   # swahili — plusieurs variantes possibles, on fixe le Kenya
 }
+
+_mymemory_langs_cache: dict | None = None
+
+
+def _get_mymemory_supported_langs() -> dict:
+    """Récupère (et met en cache) la vraie liste des langues supportées par
+    MyMemory, telle que la librairie la renvoie (nom -> code langue-PAYS)."""
+    global _mymemory_langs_cache
+    if _mymemory_langs_cache is None:
+        try:
+            from deep_translator import MyMemoryTranslator
+
+            _mymemory_langs_cache = MyMemoryTranslator(
+                source="fr-FR", target="en-GB"
+            ).get_supported_languages(as_dict=True)
+        except Exception:
+            _mymemory_langs_cache = {}
+    return _mymemory_langs_cache
+
+
+def resolve_mymemory_code(lang_code: str):
+    """Trouve automatiquement le code complet (ex: 'yo-NG') attendu par
+    MyMemory pour un code langue simple (ex: 'yo'), en cherchant dans la
+    vraie liste supportée plutôt qu'une table figée à la main.
+
+    Retourne None si aucune correspondance n'est trouvée.
+    """
+    if lang_code in MYMEMORY_CODE_OVERRIDES:
+        return MYMEMORY_CODE_OVERRIDES[lang_code]
+
+    langs = _get_mymemory_supported_langs()
+    prefix = f"{lang_code.lower()}-"
+    for code in langs.values():
+        if code.lower().startswith(prefix):
+            return code
+    return None
 
 # Caches en mémoire (par exécution) pour éviter de refaire les mêmes
 # vérifications réseau plusieurs fois.
@@ -118,7 +147,7 @@ def check_translation_support(lang_code: str) -> bool:
     """Vérifie si Google Translate ou MyMemory couvre cette langue cible."""
     global _google_langs_cache
 
-    if lang_code in MYMEMORY_LANG_MAP:
+    if resolve_mymemory_code(lang_code):
         return True
 
     try:

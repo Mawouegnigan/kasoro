@@ -38,9 +38,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from language_coverage import (
-    MYMEMORY_LANG_MAP,
     check_language_coverage,
     mms_model_name,
+    resolve_mymemory_code,
 )
 
 REFERENCE_PHRASES_DIR = Path(__file__).parent / "reference_phrases"
@@ -139,7 +139,7 @@ def translate_text(text: str, source_lang: str, target_lang: str) -> str:
             raise RuntimeError(f"Réponse suspecte de Google Translate : {translated[:80]!r}")
     except Exception as e:
         print(f"    -> Google Translate a échoué ({e}), bascule sur MyMemory...")
-        mymemory_target = MYMEMORY_LANG_MAP.get(target_lang, target_lang)
+        mymemory_target = resolve_mymemory_code(target_lang) or target_lang
         translated = MyMemoryTranslator(source="fr-FR", target=mymemory_target).translate(text)
 
     # Garde-fou final : si même le fallback renvoie quelque chose de suspect,
