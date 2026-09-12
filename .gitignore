@@ -1,0 +1,25 @@
+# Environnements Python
+venv/
+__pycache__/
+*.pyc
+.env
+
+# Fichiers audio de test générés/utilisés localement
+pipeline/*.mp3
+pipeline/*.wav
+pipeline/*.ogg
+!pipeline/.env.example
+
+# Flutter / mobile (à ajuster une fois le projet Flutter initialisé)
+mobile/.dart_tool/
+mobile/build/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+
+# Backend
+backend/__pycache__/
+backend/.env
+
+# Divers OS
+.DS_Store
+Thumbs.db
