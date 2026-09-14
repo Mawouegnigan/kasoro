@@ -20,6 +20,15 @@ class Settings(BaseSettings):
     # en statique sur /audio/<fichier>.wav
     audio_storage_dir: str = "/code/storage/audio"
 
+    # Backend de stockage pour l'audio uploadé par l'utilisateur.
+    # "local" pour l'instant ; permet de brancher S3/Cloudinary plus tard
+    # sans changer les routes (voir app/services/storage.py).
+    audio_storage_backend: str = "local"
+
+    # Base URL utilisée pour construire les audio_url retournées par l'API
+    # (upload utilisateur et audio généré par le TTS).
+    audio_base_url: str = "http://localhost:8000/audio"
+
 
 @lru_cache
 def get_settings() -> Settings:

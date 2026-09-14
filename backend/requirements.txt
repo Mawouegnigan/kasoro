@@ -25,3 +25,5 @@ scipy
 # inférence CPU dans ce conteneur).
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch
+
+python-multipart
