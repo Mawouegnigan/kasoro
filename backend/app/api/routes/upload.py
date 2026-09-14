@@ -7,6 +7,8 @@ messages inchangée — elle continue d'attendre une audio_url, comme aujourd'hu
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 
+from app.api.deps import get_current_user
+from app.models.user import User
 from app.services.storage import (
     AudioStorageError,
     AudioStorageService,
@@ -20,6 +22,7 @@ router = APIRouter(prefix="/upload", tags=["upload"])
 async def upload_audio(
     file: UploadFile = File(...),
     storage: AudioStorageService = Depends(get_storage_service),
+    current_user: User = Depends(get_current_user),
 ):
     """Upload un fichier audio et retourne son URL exploitable par le pipeline.
 

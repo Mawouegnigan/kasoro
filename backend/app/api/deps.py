@@ -2,11 +2,13 @@ import uuid
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import decode_access_token
 from app.crud import user as crud_user
 from app.db.session import get_db  # noqa: F401 (re-exported for convenience)
+from app.models.conversation_member import ConversationMember
 from app.models.user import User
 from app.services.translation import TranslationService, get_translation_service
 
@@ -32,3 +34,26 @@ async def get_current_user(
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Utilisateur introuvable")
     return user
+
+
+async def require_self(user_id: uuid.UUID, current_user: User) -> None:
+    """Lève 403 si l'utilisateur connecté n'est pas celui visé par la route."""
+    if current_user.id != user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Accès refusé")
+
+
+async def require_conversation_member(
+    db: AsyncSession, conversation_id: uuid.UUID, current_user: User
+) -> None:
+    """Lève 403 si l'utilisateur connecté n'est pas membre de la conversation."""
+    result = await db.execute(
+        select(ConversationMember).where(
+            ConversationMember.conversation_id == conversation_id,
+            ConversationMember.user_id == current_user.id,
+        )
+    )
+    if result.scalar_one_or_none() is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tu n'es pas membre de cette conversation",
+        )
