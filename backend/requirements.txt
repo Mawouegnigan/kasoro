@@ -1,0 +1,27 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+sqlalchemy==2.0.35
+asyncpg==0.29.0
+alembic==1.13.2
+pydantic==2.9.2
+pydantic-settings==2.5.2
+python-dotenv==1.0.1
+httpx==0.27.2
+pytest==8.3.3
+pytest-asyncio==0.24.0
+
+# --- Pipeline STT/MT/TTS (pipeline/pipeline.py, pipeline/language_coverage.py) ---
+# Adapte les versions ci-dessous si ton pipeline/requirements.txt en spécifie
+# d'autres : ce qui compte, c'est que ces noms de paquets soient présents.
+groq
+deep-translator
+pycountry
+huggingface_hub
+transformers
+scipy
+
+# torch en version CPU-only : wheel bien plus léger que la version par
+# défaut (qui embarque le support CUDA, inutile ici puisque MMS tourne en
+# inférence CPU dans ce conteneur).
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch

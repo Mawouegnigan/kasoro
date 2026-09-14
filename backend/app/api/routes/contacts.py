@@ -1,0 +1,31 @@
+import uuid
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.deps import get_db
+from app.crud import contact as crud_contact
+from app.models.contact import Contact
+from app.schemas.contact import ContactCreate, ContactRead
+
+router = APIRouter(prefix="/contacts", tags=["contacts"])
+
+
+@router.post("", response_model=ContactRead, status_code=201)
+async def create_contact(data: ContactCreate, db: AsyncSession = Depends(get_db)):
+    if data.owner_id == data.contact_user_id:
+        raise HTTPException(status_code=400, detail="On ne peut pas s'ajouter soi-même")
+    return await crud_contact.create_contact(db, data)
+
+
+@router.get("/owner/{owner_id}", response_model=list[ContactRead])
+async def list_contacts(owner_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    return await crud_contact.list_contacts_for_owner(db, owner_id)
+
+
+@router.delete("/{contact_id}", status_code=204)
+async def delete_contact(contact_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    contact = await db.get(Contact, contact_id)
+    if contact is None:
+        raise HTTPException(status_code=404, detail="Contact introuvable")
+    await crud_contact.delete_contact(db, contact)
