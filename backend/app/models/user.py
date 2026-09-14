@@ -16,6 +16,9 @@ class User(Base):
     )
     phone_number: Mapped[str] = mapped_column(String(32), unique=True, index=True, nullable=False)
     display_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    # Secret d'authentification haché. Champ générique (pas "pin_hash") pour
+    # pouvoir migrer vers OTP ou autre méthode plus tard sans renommer la colonne.
+    auth_secret_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     # Langue préférée de l'utilisateur (code ISO 639-1/3, ex: "yo", "fon", "fr")
     preferred_language: Mapped[str] = mapped_column(String(10), nullable=False)
     is_active: Mapped[bool] = mapped_column(default=True)

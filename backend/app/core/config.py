@@ -29,6 +29,14 @@ class Settings(BaseSettings):
     # (upload utilisateur et audio généré par le TTS).
     audio_base_url: str = "http://localhost:8000/audio"
 
+    # --- Authentification ---
+    # "pin" pour l'instant ; "otp" plus tard sans changer les routes
+    # (voir app/services/auth.py)
+    auth_method: str = "pin"
+    jwt_secret_key: str = "change-me-in-production"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60 * 24 * 7  # 7 jours
+
 
 @lru_cache
 def get_settings() -> Settings:

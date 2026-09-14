@@ -11,7 +11,7 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    pass
+    pin: str  # 4-6 chiffres, jamais stocké en clair (voir crud/user.py)
 
 
 class UserUpdate(BaseModel):

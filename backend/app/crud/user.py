@@ -3,12 +3,14 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.security import hash_secret
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate
 
 
 async def create_user(db: AsyncSession, data: UserCreate) -> User:
-    user = User(**data.model_dump())
+    payload = data.model_dump(exclude={"pin"})
+    user = User(**payload, auth_secret_hash=hash_secret(data.pin))
     db.add(user)
     await db.commit()
     await db.refresh(user)
