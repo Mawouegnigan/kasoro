@@ -18,10 +18,11 @@ async def create_message(
     if message.message_type == MessageType.audio and not message.original_text:
         text, detected_lang = await translation_service.transcribe_audio(message.original_audio_url)
         message.original_text = text
-        # On ne force pas la langue déclarée par le client : on privilégie la
-        # détection STT si elle diffère, car plus fiable que ce qu'un client
-        # analphabète pourrait renseigner manuellement.
-        message.original_language = detected_lang or message.original_language
+        # La langue déclarée par le client (choisie explicitement via un
+        # sélecteur, pas saisie en texte libre) est la source fiable — on
+        # ne l'écrase JAMAIS avec la détection automatique de Whisper,
+        # qui peut se tromper franchement (ex: français détecté comme
+        # indonésien sur un audio court/peu clair).
 
     db.add(message)
     await db.commit()

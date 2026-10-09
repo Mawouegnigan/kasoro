@@ -18,6 +18,7 @@ import asyncio
 import uuid
 from abc import ABC, abstractmethod
 from pathlib import Path
+from urllib.parse import urlparse
 
 import httpx
 
@@ -119,7 +120,8 @@ class RealTranslationService(TranslationService):
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.get(audio_url)
                 response.raise_for_status()
-            tmp_path = self._storage_dir / f"tmp_{uuid.uuid4().hex}.audio"
+            suffix = Path(urlparse(audio_url).path).suffix or ".m4a"
+            tmp_path = self._storage_dir / f"tmp_{uuid.uuid4().hex}{suffix}"
             tmp_path.write_bytes(response.content)
             return str(tmp_path)
 
