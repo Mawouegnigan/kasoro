@@ -16,6 +16,10 @@ mobile/build/
 mobile/.flutter-plugins
 mobile/.flutter-plugins-dependencies
 
+# Dossier de test et image locale
+mob/
+mobile/flutter_01.png
+
 # Backend
 backend/__pycache__/
 backend/.env
