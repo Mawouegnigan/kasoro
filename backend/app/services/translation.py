@@ -37,7 +37,7 @@ class TranslationService(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def transcribe_audio(self, audio_url: str) -> tuple[str, str]:
+    async def transcribe_audio(self, audio_url: str, language: str | None = None) -> tuple[str, str]:
         """Transcrit un fichier audio (Groq/Whisper). Retourne (texte, langue_détectée)."""
         raise NotImplementedError
 
@@ -55,7 +55,7 @@ class StubTranslationService(TranslationService):
     async def synthesize_audio(self, text: str, lang: str) -> str:
         return f"stub://audio/{lang}/not-yet-generated.wav"
 
-    async def transcribe_audio(self, audio_url: str) -> tuple[str, str]:
+    async def transcribe_audio(self, audio_url: str, language: str | None = None) -> tuple[str, str]:
         return "[transcription à brancher]", "fr"
 
 
@@ -99,11 +99,11 @@ class RealTranslationService(TranslationService):
         )
         return f"/audio/{filename}"
 
-    async def transcribe_audio(self, audio_url: str) -> tuple[str, str]:
+    async def transcribe_audio(self, audio_url: str, language: str | None = None) -> tuple[str, str]:
         import pipeline as kasoro_pipeline
 
         local_path = await self._ensure_local_file(audio_url)
-        result = await asyncio.to_thread(kasoro_pipeline.transcribe_audio, local_path)
+        result = await asyncio.to_thread(kasoro_pipeline.transcribe_audio, local_path, language)
         return result["text"], result["language"]
 
     async def _ensure_local_file(self, audio_url: str) -> str:

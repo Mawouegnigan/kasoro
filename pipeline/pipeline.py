@@ -81,8 +81,11 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 # à chaque appel dans la même exécution.
 _MMS_MODELS = {}
 
+# Langues que Whisper sait transcrire parmi celles de Kasoro.
+# Le fon et l'adja n'en font pas partie : on laisse alors la détection libre.
+WHISPER_SUPPORTED_LANGS = {"fr", "en", "yo"}
 
-def transcribe_audio(audio_path: str) -> dict:
+def transcribe_audio(audio_path: str, language=None) -> dict:
     """Étape 1 : Speech-to-Text via Groq (Whisper-large-v3).
 
     Retourne un dict avec le texte transcrit et la langue détectée.
@@ -100,7 +103,7 @@ def transcribe_audio(audio_path: str) -> dict:
     with open(audio_path, "rb") as f:
         result = client.audio.transcriptions.create(
             file=(Path(audio_path).name, f.read()),
-            model="whisper-large-v3",
+            model="whisper-large-v3", **({"language": language} if language in ("fr", "en", "yo") else {}),
             response_format="verbose_json",  # renvoie aussi la langue détectée
         )
 
@@ -140,11 +143,11 @@ def translate_text(text: str, source_lang: str, target_lang: str) -> str:
     except Exception as e:
         print(f"    -> Google Translate a échoué ({e}), bascule sur MyMemory...")
         mymemory_target = resolve_mymemory_code(target_lang) or target_lang
-        translated = MyMemoryTranslator(source="fr-FR", target=mymemory_target).translate(text)
+        translated = MyMemoryTranslator(source=(resolve_mymemory_code(source_lang) or ("fr-FR" if source_lang == "fr" else source_lang)), target=mymemory_target).translate(text)
 
     # Garde-fou final : si même le fallback renvoie quelque chose de suspect,
     # on arrête ici plutôt que de gaspiller un appel TTS sur du charabia.
-    if not translated or any(sig in translated.lower() for sig in ["error 500", "server error", "<html"]):
+    if not translated or any(sig in translated.lower() for sig in ["error 500", "server error", "<html"]) or (source_lang != target_lang and len(text.split()) >= 3 and translated.strip().lower() == text.strip().lower()):
         raise RuntimeError(f"Traduction invalide après fallback : {translated[:80]!r}")
 
     elapsed = time.time() - t0

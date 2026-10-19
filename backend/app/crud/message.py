@@ -16,7 +16,7 @@ async def create_message(
 
     # Si c'est un message audio et qu'on n'a pas déjà de texte, transcrire (STT).
     if message.message_type == MessageType.audio and not message.original_text:
-        text, detected_lang = await translation_service.transcribe_audio(message.original_audio_url)
+        text, _ = await translation_service.transcribe_audio(message.original_audio_url, message.original_language)
         message.original_text = text
         # La langue déclarée par le client (choisie explicitement via un
         # sélecteur, pas saisie en texte libre) est la source fiable — on
