@@ -115,7 +115,7 @@ def transcribe_audio(audio_path: str, language=None) -> dict:
     return {"text": result.text, "language": result.language}
 
 
-def translate_text(text: str, source_lang: str, target_lang: str) -> str:
+def translate_text_legacy(text: str, source_lang: str, target_lang: str) -> str:
     """Étape 2 : Traduction du texte transcrit vers la langue cible.
 
     Utilise Google Translate (via deep-translator) comme premier jalon.
@@ -156,6 +156,22 @@ def translate_text(text: str, source_lang: str, target_lang: str) -> str:
 
     return translated
 
+
+def translate_text(text: str, source_lang: str, target_lang: str) -> str:
+    """Étape 2 : traduction locale avec NLLB-200 et garde-fous.
+
+    Langues prises en charge : fr, en, yo, fon. Pour toute autre langue
+    (l'adja notamment) ou si la traduction n'est pas fiable, on lève
+    TraductionIndisponible : aucune voix ne doit être générée.
+    L'ancien chemin Google/MyMemory est conservé dans translate_text_legacy.
+    """
+    from nllb_translator import NLLB_CODES, TraductionIndisponible, translate_nllb
+
+    if source_lang not in NLLB_CODES or target_lang not in NLLB_CODES:
+        raise TraductionIndisponible(
+            f"Langue non prise en charge : {source_lang} -> {target_lang}"
+        )
+    return translate_nllb(text, source_lang, target_lang)
 
 # Noms des langues en français, pour construire des prompts clairs.
 LANG_NAMES_FR = {
