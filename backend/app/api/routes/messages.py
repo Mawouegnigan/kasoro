@@ -13,7 +13,7 @@ from app.api.deps import (
 from app.crud import message as crud_message
 from app.models.user import User
 from app.schemas.message import MessageCreate, MessageInLanguage, MessageRead
-from app.services.translation import TranslationService
+from app.services.translation import TranslationService, TranslationUnavailableError
 
 router = APIRouter(prefix="/messages", tags=["messages"])
 
@@ -69,9 +69,12 @@ async def get_message_in_language(
 
     await require_conversation_member(db, message.conversation_id, current_user)
 
-    translation, was_cached = await crud_message.get_or_create_translation(
-        db, message, language, translation_service
-    )
+    try:
+        translation, was_cached = await crud_message.get_or_create_translation(
+            db, message, language, translation_service
+        )
+    except TranslationUnavailableError:
+        raise HTTPException(status_code=422, detail="translation_unavailable")
     return MessageInLanguage(
         message_id=message_id,
         language=language,

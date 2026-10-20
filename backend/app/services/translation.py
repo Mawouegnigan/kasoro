@@ -1,8 +1,8 @@
 """Interface vers le pipeline de traduction/synthèse vocale existant.
 
 Ce module NE réimplémente PAS le pipeline STT -> MT -> TTS déjà validé
-(pipeline/pipeline.py du repo Kasoro, Groq Whisper + Google Translate/MyMemory
-+ Meta MMS). Il expose juste le contrat que l'API backend attend, pour que tu
+(pipeline/pipeline.py du repo Kasoro, Groq Whisper + NLLB-200 + Meta MMS).
+Il expose juste le contrat que l'API backend attend, pour que tu
 puisses brancher tes fonctions existantes ici sans toucher au reste du code.
 
 TODO (intégration) :
@@ -23,6 +23,10 @@ from urllib.parse import urlparse
 import httpx
 
 from app.core.config import get_settings
+
+
+class TranslationUnavailableError(Exception):
+    """La traduction est indisponible ou jugée peu fiable pour ce couple de langues."""
 
 
 class TranslationService(ABC):
@@ -61,8 +65,7 @@ class StubTranslationService(TranslationService):
 
 class RealTranslationService(TranslationService):
     """Branche le pipeline réel : pipeline/pipeline.py (Groq Whisper pour le
-    STT, Google Translate + fallback MyMemory pour le MT, MMS de Meta en
-    local pour le TTS).
+    STT, NLLB-200 en local pour le MT, MMS de Meta en local pour le TTS).
 
     Le dossier pipeline/ est copié/monté dans l'image à côté de app/ (voir
     Dockerfile et docker-compose.yml) et ajouté à PYTHONPATH, donc les
@@ -70,9 +73,10 @@ class RealTranslationService(TranslationService):
     fonctionnent tels quels, sans aucune modification de pipeline.py.
 
     Toutes les fonctions du pipeline sont synchrones et bloquantes (appels
-    réseau Groq + inférence torch pour MMS) -> exécutées dans un thread
-    séparé via asyncio.to_thread pour ne jamais geler la boucle d'événements
-    FastAPI pendant qu'une traduction ou une synthèse audio est en cours.
+    réseau Groq + inférence torch pour NLLB et MMS) -> exécutées dans un
+    thread séparé via asyncio.to_thread pour ne jamais geler la boucle
+    d'événements FastAPI pendant qu'une traduction ou une synthèse audio
+    est en cours.
     """
 
     def __init__(self) -> None:
@@ -81,10 +85,14 @@ class RealTranslationService(TranslationService):
 
     async def translate_text(self, text: str, source_lang: str, target_lang: str) -> str:
         import pipeline as kasoro_pipeline  # import tardif : évite de charger
+        from nllb_translator import TraductionIndisponible
 
-        return await asyncio.to_thread(
-            kasoro_pipeline.translate_text, text, source_lang, target_lang
-        )
+        try:
+            return await asyncio.to_thread(
+                kasoro_pipeline.translate_text, text, source_lang, target_lang
+            )
+        except TraductionIndisponible as e:
+            raise TranslationUnavailableError(str(e)) from e
 
     async def synthesize_audio(self, text: str, lang: str) -> str:
         import pipeline as kasoro_pipeline
@@ -134,7 +142,7 @@ class RealTranslationService(TranslationService):
 def get_translation_service() -> TranslationService:
     # Point d'extension unique. Bascule contrôlée par USE_REAL_PIPELINE dans
     # .env : false -> stub (dev rapide sans dépendances externes),
-    # true -> vrai pipeline Groq/MT/MMS.
+    # true -> vrai pipeline Groq/NLLB/MMS.
     if get_settings().use_real_pipeline:
         return RealTranslationService()
     return StubTranslationService()
