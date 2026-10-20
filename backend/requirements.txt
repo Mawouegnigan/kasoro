@@ -19,10 +19,11 @@ pycountry
 huggingface_hub
 transformers
 scipy
+sentencepiece
 
 # torch en version CPU-only : wheel bien plus léger que la version par
-# défaut (qui embarque le support CUDA, inutile ici puisque MMS tourne en
-# inférence CPU dans ce conteneur).
+# défaut (qui embarque le support CUDA, inutile ici puisque NLLB et MMS
+# tournent en inférence CPU dans ce conteneur).
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch
 
