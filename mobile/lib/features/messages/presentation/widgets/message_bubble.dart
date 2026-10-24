@@ -6,6 +6,7 @@ import 'package:just_audio/just_audio.dart';
 
 import '../../../../core/constants/supported_languages.dart';
 import '../../../../core/network/api_exception.dart';
+import 'correction_dialog.dart';
 import '../../../../core/utils/audio_url_resolver.dart';
 import '../../../contacts/application/contacts_providers.dart' show currentUserIdProvider;
 import '../../application/messages_providers.dart';
@@ -117,7 +118,19 @@ class _MessageBubbleState extends ConsumerState<MessageBubble> {
             translationAsync.when(
               loading: () => const _TranslationLoadingIndicator(),
               error: (error, _) => (error is ApiException && error.isTranslationUnavailable)
-                  ? _TranslationUnavailableNotice(language: readingLanguage)
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _TranslationUnavailableNotice(language: readingLanguage),
+                        _CorrectionLink(
+                          messageId: widget.message.id,
+                          originLanguage: widget.message.originalLanguage,
+                          readingLanguage: readingLanguage,
+                          isAudio: widget.message.type == MessageType.audio,
+                        ),
+                      ],
+                    )
                   : Text('Erreur de traduction : $error'),
               data: (translation) => Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -408,6 +421,46 @@ class _ReadingLanguageChip extends ConsumerWidget {
     if (picked != null) {
       ref.read(readingLanguageControllerProvider(messageId).notifier).select(picked);
     }
+  }
+}
+
+/// Petit lien « Corriger » sous une traduction (ou sous « traduction
+/// indisponible ») : ouvre la boîte de dialogue de correction.
+class _CorrectionLink extends StatelessWidget {
+  const _CorrectionLink({
+    required this.messageId,
+    required this.originLanguage,
+    required this.readingLanguage,
+    required this.isAudio,
+  });
+
+  final String messageId;
+  final String originLanguage;
+  final String readingLanguage;
+  final bool isAudio;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => showCorrectionDialog(
+        context,
+        messageId: messageId,
+        originLanguage: originLanguage,
+        readingLanguage: readingLanguage,
+        isAudio: isAudio,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.edit_outlined, size: 14, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 4),
+            const Text('Corriger', style: TextStyle(fontSize: 11)),
+          ],
+        ),
+      ),
+    );
   }
 }
 
