@@ -26,6 +26,7 @@ services:
       - "8000:8000"
     volumes:
       - ./app:/code/app
+      - ./alembic:/code/alembic
       - ../pipeline:/code/pipeline
       # Cache des modèles MMS (Hugging Face) : persiste entre redémarrages
       # du conteneur pour ne pas retélécharger un modèle déjà utilisé.
