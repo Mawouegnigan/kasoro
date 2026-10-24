@@ -13,6 +13,7 @@ class ApiException implements Exception {
     this.statusCode,
     this.isUnauthorized = false,
     this.isForbidden = false,
+    this.isTranslationUnavailable = false,
   });
 
   factory ApiException.fromDioException(DioException e) {
@@ -35,6 +36,13 @@ class ApiException implements Exception {
         isForbidden: true,
       );
     }
+    if (status == 422 && serverMessage == 'translation_unavailable') {
+      return ApiException(
+        message: 'Traduction indisponible pour cette langue.',
+        statusCode: status,
+        isTranslationUnavailable: true,
+      );
+    }
     if (e.type == DioExceptionType.connectionTimeout ||
         e.type == DioExceptionType.receiveTimeout ||
         e.type == DioExceptionType.connectionError) {
@@ -54,6 +62,7 @@ class ApiException implements Exception {
   final int? statusCode;
   final bool isUnauthorized;
   final bool isForbidden;
+  final bool isTranslationUnavailable;
 
   @override
   String toString() => 'ApiException($statusCode): $message';

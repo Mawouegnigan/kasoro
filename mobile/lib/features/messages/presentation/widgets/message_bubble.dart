@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../../../../core/constants/supported_languages.dart';
+import '../../../../core/network/api_exception.dart';
 import '../../../../core/utils/audio_url_resolver.dart';
 import '../../../contacts/application/contacts_providers.dart' show currentUserIdProvider;
 import '../../application/messages_providers.dart';
@@ -25,6 +26,7 @@ class _MessageBubbleState extends ConsumerState<MessageBubble> {
   bool _isPlaying = false;
   bool _isBuffering = false;
   String? _playbackError;
+  String? _loadedAudioUrl;
 
   @override
   void dispose() {
@@ -57,7 +59,7 @@ class _MessageBubbleState extends ConsumerState<MessageBubble> {
     }
 
     try {
-      if (_player!.audioSource == null) {
+      if (_player!.audioSource == null || _loadedAudioUrl != audioUrl) {
         setState(() => _isBuffering = true);
         final Uri uri = Uri.parse(resolveAudioUrl(audioUrl));
         await _player!.setAudioSource(AudioSource.uri(uri));
@@ -114,7 +116,9 @@ class _MessageBubbleState extends ConsumerState<MessageBubble> {
             const SizedBox(height: 4),
             translationAsync.when(
               loading: () => const _TranslationLoadingIndicator(),
-              error: (error, _) => Text('Erreur de traduction : $error'),
+              error: (error, _) => (error is ApiException && error.isTranslationUnavailable)
+                  ? _TranslationUnavailableNotice(language: readingLanguage)
+                  : Text('Erreur de traduction : $error'),
               data: (translation) => Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
@@ -404,6 +408,35 @@ class _ReadingLanguageChip extends ConsumerWidget {
     if (picked != null) {
       ref.read(readingLanguageControllerProvider(messageId).notifier).select(picked);
     }
+  }
+}
+
+/// Affiché quand le backend répond 422 « translation_unavailable » :
+/// la traduction vers cette langue n'est pas fiable (ex. adja).
+class _TranslationUnavailableNotice extends StatelessWidget {
+  const _TranslationUnavailableNotice({required this.language});
+
+  final String language;
+
+  @override
+  Widget build(BuildContext context) {
+    final String label = supportedLanguages
+        .firstWhere((l) => l.$1 == language, orElse: () => (language, language))
+        .$2;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.info_outline, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            'Traduction indisponible en $label pour ce message.',
+            style: const TextStyle(fontSize: 12),
+          ),
+        ),
+      ],
+    );
   }
 }
 
