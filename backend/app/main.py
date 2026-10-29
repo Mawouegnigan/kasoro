@@ -18,6 +18,16 @@ def _prechauffer_modeles() -> None:
 
     translate_nllb("Bonjour, comment vas-tu ?", "fr", "yo")
 
+    # Voix MMS-TTS : chargées en mémoire par langue (cache du pipeline).
+    import pipeline as kasoro_pipeline
+
+    for langue in ("yo", "fon"):
+        try:
+            print(f"[démarrage] Préchargement de la voix {langue}...")
+            kasoro_pipeline._get_mms_model(langue)
+        except Exception as e:
+            print(f"[démarrage] Voix {langue} non préchargée ({e}).")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
