@@ -40,6 +40,8 @@ def _charger_modele():
 def translate_nllb(text: str, source_lang: str, target_lang: str) -> str:
     import torch
 
+    torch.set_num_threads(4)
+
     src = NLLB_CODES.get(source_lang)
     tgt = NLLB_CODES.get(target_lang)
     if src is None or tgt is None:
