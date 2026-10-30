@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../contacts/application/contacts_providers.dart' show currentUserIdProvider;
@@ -9,6 +11,8 @@ final FutureProvider<List<ConversationModel>> conversationsListProvider =
     FutureProvider<List<ConversationModel>>((ref) async {
   final String? userId = ref.watch(currentUserIdProvider);
   if (userId == null) return const [];
+  final Timer refreshTimer = Timer(const Duration(seconds: 8), ref.invalidateSelf);
+  ref.onDispose(refreshTimer.cancel);
   return ref.read(conversationsRepositoryProvider).fetchUserConversations(userId);
 });
 
