@@ -4,6 +4,10 @@ class ConversationModel {
     this.name,
     required this.isGroup,
     required this.createdAt,
+    this.lastMessageType,
+    this.lastMessageText,
+    this.lastMessageAt,
+    this.lastMessageSenderId,
   });
 
   factory ConversationModel.fromJson(Map<String, dynamic> json) {
@@ -12,6 +16,12 @@ class ConversationModel {
       name: json['name'] as String?,
       isGroup: json['is_group'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at'] as String),
+      lastMessageType: json['last_message_type'] as String?,
+      lastMessageText: json['last_message_text'] as String?,
+      lastMessageAt: json['last_message_at'] == null
+          ? null
+          : DateTime.parse(json['last_message_at'] as String),
+      lastMessageSenderId: json['last_message_sender_id'] as String?,
     );
   }
 
@@ -19,6 +29,10 @@ class ConversationModel {
   final String? name;
   final bool isGroup;
   final DateTime createdAt;
+  final String? lastMessageType;
+  final String? lastMessageText;
+  final DateTime? lastMessageAt;
+  final String? lastMessageSenderId;
 }
 
 class ConversationMemberModel {

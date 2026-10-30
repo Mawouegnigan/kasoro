@@ -6,6 +6,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models.conversation import Conversation
 from app.models.conversation_member import ConversationMember
+from app.models.message import Message
 from app.models.user import User
 from app.schemas.conversation import ConversationCreate, ConversationMemberCreate
 
@@ -42,6 +43,24 @@ async def get_conversation(db: AsyncSession, conversation_id: uuid.UUID) -> Conv
 
 
 async def list_conversations_for_user(db: AsyncSession, user_id: uuid.UUID) -> list[Conversation]:
+    conversations = await _conversations_of_user(db, user_id)
+    for conversation in conversations:
+        result = await db.execute(
+            select(Message)
+            .where(Message.conversation_id == conversation.id)
+            .order_by(Message.created_at.desc())
+            .limit(1)
+        )
+        last = result.scalar_one_or_none()
+        if last is not None:
+            conversation.last_message_type = getattr(last.message_type, "value", str(last.message_type))
+            conversation.last_message_text = last.original_text
+            conversation.last_message_at = last.created_at
+            conversation.last_message_sender_id = last.sender_id
+    return conversations
+
+
+async def _conversations_of_user(db: AsyncSession, user_id: uuid.UUID) -> list[Conversation]:
     result = await db.execute(
         select(Conversation)
         .join(ConversationMember)

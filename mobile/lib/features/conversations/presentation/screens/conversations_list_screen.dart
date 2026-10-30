@@ -45,7 +45,7 @@ class ConversationsListScreen extends ConsumerWidget {
               child: Padding(
                 padding: EdgeInsets.all(24),
                 child: Text(
-                  "Aucune conversation. Démarre-en une depuis tes contacts.",
+                  'Aucune conversation. Démarrez-en une depuis vos contacts.',
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -62,6 +62,17 @@ class ConversationsListScreen extends ConsumerWidget {
   }
 }
 
+/// Heure du dernier message : HH:mm si c'est aujourd'hui, sinon jj/mm.
+String _formatTime(DateTime date) {
+  final DateTime local = date.toLocal();
+  final DateTime now = DateTime.now();
+  String two(int n) => n.toString().padLeft(2, '0');
+  if (local.year == now.year && local.month == now.month && local.day == now.day) {
+    return '${two(local.hour)}:${two(local.minute)}';
+  }
+  return '${two(local.day)}/${two(local.month)}';
+}
+
 /// Résout un titre lisible pour la conversation :
 /// - si un `name` existe côté backend (toujours le cas pour un groupe,
 ///   optionnel pour du 1:1), on l'affiche tel quel ;
@@ -72,29 +83,48 @@ class _ConversationTile extends ConsumerWidget {
 
   final ConversationModel conversation;
 
+  String? _preview(String? currentUserId) {
+    final String? type = conversation.lastMessageType;
+    if (type == null) return null;
+    final String text = (conversation.lastMessageText ?? '').trim();
+    final bool isAudio = type.toLowerCase().contains('audio');
+    final String body = (isAudio || text.isEmpty) ? 'Message vocal' : text;
+    final bool mine = conversation.lastMessageSenderId != null &&
+        conversation.lastMessageSenderId == currentUserId;
+    return mine ? 'Vous : $body' : body;
+  }
+
+  Widget _tile(BuildContext context, Widget leading, Widget title, String? currentUserId) {
+    final String? preview = _preview(currentUserId);
+    final DateTime? at = conversation.lastMessageAt;
+    return ListTile(
+      leading: leading,
+      title: title,
+      subtitle: preview == null
+          ? null
+          : Text(preview, maxLines: 1, overflow: TextOverflow.ellipsis),
+      trailing: at == null
+          ? null
+          : Text(_formatTime(at), style: Theme.of(context).textTheme.bodySmall),
+      onTap: () => context.push('/conversations/${conversation.id}'),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final String? currentUserId = ref.watch(currentUserIdProvider);
     final leading = CircleAvatar(
       child: Icon(conversation.isGroup ? Icons.groups : Icons.person),
     );
 
     if (conversation.name != null && conversation.name!.isNotEmpty) {
-      return ListTile(
-        leading: leading,
-        title: Text(conversation.name!),
-        onTap: () => context.push('/conversations/${conversation.id}'),
-      );
+      return _tile(context, leading, Text(conversation.name!), currentUserId);
     }
 
     if (conversation.isGroup) {
-      return ListTile(
-        leading: leading,
-        title: const Text('Groupe'),
-        onTap: () => context.push('/conversations/${conversation.id}'),
-      );
+      return _tile(context, leading, const Text('Groupe'), currentUserId);
     }
 
-    final String? currentUserId = ref.watch(currentUserIdProvider);
     final membersAsync = ref.watch(conversationMembersProvider(conversation.id));
 
     return membersAsync.when(
@@ -106,22 +136,14 @@ class _ConversationTile extends ConsumerWidget {
             .firstWhere((id) => id != currentUserId, orElse: () => '');
 
         if (otherMemberId.isEmpty) {
-          return ListTile(
-            leading: leading,
-            title: const Text('Conversation'),
-            onTap: () => context.push('/conversations/${conversation.id}'),
-          );
+          return _tile(context, leading, const Text('Conversation'), currentUserId);
         }
 
         final userAsync = ref.watch(publicUserProvider(otherMemberId));
         return userAsync.when(
           loading: () => ListTile(leading: leading, title: const Text('...')),
           error: (_, __) => ListTile(leading: leading, title: const Text('Conversation')),
-          data: (user) => ListTile(
-            leading: leading,
-            title: Text(user.displayName),
-            onTap: () => context.push('/conversations/${conversation.id}'),
-          ),
+          data: (user) => _tile(context, leading, Text(user.displayName), currentUserId),
         );
       },
     );

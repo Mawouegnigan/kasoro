@@ -18,6 +18,10 @@ class ConversationRead(BaseModel):
     name: str | None
     is_group: bool
     created_at: datetime
+    last_message_type: str | None = None
+    last_message_text: str | None = None
+    last_message_at: datetime | None = None
+    last_message_sender_id: uuid.UUID | None = None
 
 
 class ConversationMemberCreate(BaseModel):
