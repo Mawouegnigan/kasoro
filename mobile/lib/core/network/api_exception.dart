@@ -24,7 +24,7 @@ class ApiException implements Exception {
 
     if (status == 401) {
       return ApiException(
-        message: serverMessage ?? 'Session expirée, reconnecte-toi.',
+        message: serverMessage ?? 'Session expirée, reconnectez-vous.',
         statusCode: status,
         isUnauthorized: true,
       );

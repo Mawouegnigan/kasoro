@@ -63,7 +63,7 @@ class _CorrectionDialogState extends ConsumerState<_CorrectionDialog> {
   Future<void> _submit() async {
     final String text = _controller.text.trim();
     if (text.isEmpty) {
-      setState(() => _error = 'Écris ta correction avant d\'envoyer.');
+      setState(() => _error = 'Écrivez votre correction avant d\'envoyer.');
       return;
     }
 
@@ -84,7 +84,7 @@ class _CorrectionDialogState extends ConsumerState<_CorrectionDialog> {
           );
       navigator.pop();
       messenger.showSnackBar(
-        const SnackBar(content: Text('Merci ! Ta correction sera vérifiée par un autre locuteur.')),
+        const SnackBar(content: Text('Merci ! Votre correction sera vérifiée par un autre locuteur.')),
       );
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -130,8 +130,8 @@ class _CorrectionDialogState extends ConsumerState<_CorrectionDialog> {
             ],
             Text(
               isTranscription
-                  ? 'Écris ce qui a vraiment été dit, en $targetLabel.'
-                  : 'Écris la bonne traduction en $targetLabel.',
+                  ? 'Écrivez ce qui a vraiment été dit, en $targetLabel.'
+                  : 'Écrivez la bonne traduction en $targetLabel.',
               style: const TextStyle(fontSize: 13),
             ),
             const SizedBox(height: 8),
@@ -145,7 +145,7 @@ class _CorrectionDialogState extends ConsumerState<_CorrectionDialog> {
             ),
             const SizedBox(height: 4),
             Text(
-              'En envoyant, tu acceptes que ta correction soit conservée et utilisée '
+              'En envoyant, vous acceptez que votre correction soit conservée et utilisée '
               'pour améliorer les traductions de Kasoro. Elle sera vérifiée par un '
               'autre locuteur avant d\'être retenue.',
               style: TextStyle(

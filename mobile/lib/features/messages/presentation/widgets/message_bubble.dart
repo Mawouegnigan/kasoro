@@ -181,7 +181,7 @@ class _MessageBubbleState extends ConsumerState<MessageBubble> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              isMine ? 'Toi' : 'Reçu',
+              isMine ? 'Vous' : 'Reçu',
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.bold,

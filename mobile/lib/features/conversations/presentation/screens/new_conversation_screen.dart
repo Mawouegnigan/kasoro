@@ -41,7 +41,7 @@ class NewConversationScreen extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Text(
-                      "Tu n'as pas encore de contact.",
+                      "Vous n'avez pas encore de contact.",
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 16),

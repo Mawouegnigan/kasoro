@@ -59,7 +59,7 @@ class _AddContactScreenState extends ConsumerState<AddContactScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text(
-                "Entre le numéro de téléphone de la personne. "
+                "Entrez le numéro de téléphone de la personne. "
                 "Elle doit déjà avoir un compte Kasoro.",
               ),
               const SizedBox(height: 16),

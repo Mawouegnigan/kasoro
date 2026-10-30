@@ -94,7 +94,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
-                PinInputField(controller: _pinController, label: 'Choisis un PIN'),
+                PinInputField(controller: _pinController, label: 'Choisissez un PIN'),
                 const SizedBox(height: 32),
                 ElevatedButton(
                   onPressed: isLoading ? null : _submit,
