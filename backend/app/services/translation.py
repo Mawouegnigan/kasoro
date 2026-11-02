@@ -124,6 +124,9 @@ class RealTranslationService(TranslationService):
             résout directement vers le fichier local correspondant ;
           - un chemin déjà local -> utilisé tel quel.
         """
+        _path = urlparse(audio_url).path
+        if _path.startswith("/audio/") and (self._storage_dir / _path.removeprefix("/audio/")).is_file():
+            return str(self._storage_dir / _path.removeprefix("/audio/"))
         if audio_url.startswith("http://") or audio_url.startswith("https://"):
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.get(audio_url)

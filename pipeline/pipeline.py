@@ -86,6 +86,14 @@ _MMS_MODELS = {}
 WHISPER_SUPPORTED_LANGS = {"fr", "en", "yo"}
 
 def transcribe_audio(audio_path: str, language=None) -> dict:
+    """Etape 1 : STT. Fon -> MMS-1b-all (local) ; autres langues -> Whisper (Groq)."""
+    if language == "fon":
+        from mms_asr import transcribe_mms
+        return transcribe_mms(audio_path, "fon")
+    return _transcribe_whisper(audio_path, language)
+
+
+def _transcribe_whisper(audio_path: str, language=None) -> dict:
     """Étape 1 : Speech-to-Text via Groq (Whisper-large-v3).
 
     Retourne un dict avec le texte transcrit et la langue détectée.

@@ -70,6 +70,7 @@ class MessagesRepository {
           'original_language': originalLanguage,
           'original_audio_url': audioUrl,
         },
+        options: Options(receiveTimeout: ApiConfig.translationReceiveTimeout),
       );
       return MessageModel.fromJson(response.data!);
     } on DioException catch (e) {
@@ -80,7 +81,7 @@ class MessagesRepository {
   Future<List<MessageModel>> fetchMessages(
     String conversationId, {
     int skip = 0,
-    int limit = 50,
+    int limit = 200,
   }) async {
     try {
       final response = await _dio.get<List<dynamic>>(
