@@ -1,4 +1,4 @@
-package com.example.kasoro_mobile
+package com.sosorohigh.kasoro
 
 import io.flutter.embedding.android.FlutterActivity
 
