@@ -309,7 +309,7 @@ def _get_mms_model(target_lang: str):
         model_name = mms_model_name(target_lang)
 
         print(f"    -> Vérification de la disponibilité de {model_name} ...")
-        model = VitsModel.from_pretrained(model_name)  # échoue proprement si le dépôt n'existe pas
+        import torch; model = VitsModel.from_pretrained(model_name).to("cuda" if torch.cuda.is_available() else "cpu")  # échoue proprement si le dépôt n'existe pas
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         _MMS_MODELS[target_lang] = (model, tokenizer)
 
@@ -337,7 +337,7 @@ def synthesize_speech(text: str, target_lang: str, output_path: str) -> str:
 
     model, tokenizer = _get_mms_model(target_lang)
 
-    inputs = tokenizer(text, return_tensors="pt")
+    inputs = tokenizer(text, return_tensors="pt").to(model.device)
     with torch.no_grad():
         output = model(**inputs).waveform
 

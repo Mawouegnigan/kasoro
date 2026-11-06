@@ -3,6 +3,7 @@ Transcription MMS-1b-all (Meta) pour les langues peu dotees (fon).
 
 Le modele est charge une seule fois, a la premiere utilisation, puis garde
 en memoire. Utilise par pipeline.transcribe_audio quand language == "fon".
+Utilise le GPU s'il existe, sinon le processeur.
 """
 import os
 import subprocess
@@ -16,6 +17,7 @@ import torch
 from transformers import AutoProcessor, Wav2Vec2ForCTC
 
 MODEL_ID = "facebook/mms-1b-all"
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Une entree par langue : (processor, model)
 _MMS_ASR = {}
@@ -44,13 +46,14 @@ def _charger_audio(chemin):
 def _obtenir_modele(langue):
     with _LOCK:
         if langue not in _MMS_ASR:
-            print(f"    -> Chargement de {MODEL_ID} (langue : {langue}) ...")
+            print(f"    -> Chargement de {MODEL_ID} (langue : {langue}, appareil : {DEVICE}) ...")
             t0 = time.time()
             processor = AutoProcessor.from_pretrained(MODEL_ID, target_lang=langue)
             model = Wav2Vec2ForCTC.from_pretrained(
                 MODEL_ID, target_lang=langue, ignore_mismatched_sizes=True
             )
             model.eval()
+            model.to(DEVICE)
             _MMS_ASR[langue] = (processor, model)
             print(f"    -> Modele MMS charge en {time.time() - t0:.1f} s")
         return _MMS_ASR[langue]
@@ -67,6 +70,7 @@ def transcribe_mms(audio_path, language="fon"):
 
     t0 = time.time()
     entrees = processor(audio, sampling_rate=16000, return_tensors="pt")
+    entrees = {k: v.to(DEVICE) for k, v in entrees.items()}
     with torch.inference_mode():
         logits = model(**entrees).logits
     ids = torch.argmax(logits, dim=-1)[0]

@@ -2,6 +2,7 @@
 
 Licence du modèle : CC-BY-NC (usage non commercial) -- à revoir avant
 toute exploitation commerciale.
+Utilise le GPU s'il existe, sinon le processeur.
 """
 import sys
 import time
@@ -23,17 +24,21 @@ class TraductionIndisponible(Exception):
 
 _tokenizer = None
 _model = None
+_device = "cpu"
 
 
 def _charger_modele():
-    global _tokenizer, _model
+    global _tokenizer, _model, _device
     if _model is None:
+        import torch
         from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
-        print(f"    -> Chargement de {MODEL_NAME} (long au premier lancement)...")
+        _device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"    -> Chargement de {MODEL_NAME} (appareil : {_device}) ...")
         _tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
         _model = AutoModelForSeq2SeqLM.from_pretrained(MODEL_NAME)
         _model.eval()
+        _model.to(_device)
     return _tokenizer, _model
 
 
@@ -59,6 +64,7 @@ def translate_nllb(text: str, source_lang: str, target_lang: str) -> str:
     tokenizer, model = _charger_modele()
     tokenizer.src_lang = src
     inputs = tokenizer(text, return_tensors="pt")
+    inputs = inputs.to(_device)
     nb_tokens = inputs["input_ids"].shape[1]
 
     with torch.no_grad():
