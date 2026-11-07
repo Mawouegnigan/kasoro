@@ -16,6 +16,11 @@ class Settings(BaseSettings):
     # pour retravailler l'API rapidement sans dépendre de Groq/MMS.
     use_real_pipeline: bool = True
 
+    # Mode du pipeline reel : local (dans le conteneur) ou remote (pod GPU)
+    pipeline_mode: str = "local"
+    gpu_service_url: str = ""
+    gpu_api_key: str = ""
+
     # Où sont écrits les fichiers audio générés par le TTS, servis ensuite
     # en statique sur /audio/<fichier>.wav
     audio_storage_dir: str = "/code/storage/audio"

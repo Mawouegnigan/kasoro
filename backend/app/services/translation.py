@@ -142,10 +142,68 @@ class RealTranslationService(TranslationService):
         return audio_url
 
 
+class RemoteTranslationService(RealTranslationService):
+    """Envoie les calculs lourds (STT, MT, TTS) au service GPU distant (pod RunPod).
+
+    Réglages lus dans .env : GPU_SERVICE_URL et GPU_API_KEY.
+    Aucun modèle n'est chargé dans ce processus. Le fichier audio généré est
+    enregistré dans le dossier audio local, donc l'app continue de recevoir
+    des URL /audio/xxx.wav comme avant.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        settings = get_settings()
+        if not settings.gpu_service_url or not settings.gpu_api_key:
+            raise RuntimeError("GPU_SERVICE_URL et GPU_API_KEY doivent être définis dans .env")
+        self._base_url = settings.gpu_service_url.rstrip("/")
+        self._headers = {"X-API-Key": settings.gpu_api_key}
+        self._timeout = httpx.Timeout(60.0, connect=10.0)
+
+    async def translate_text(self, text: str, source_lang: str, target_lang: str) -> str:
+        payload = {"text": text, "source_lang": source_lang, "target_lang": target_lang}
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.post(
+                f"{self._base_url}/translate", json=payload, headers=self._headers
+            )
+        if response.status_code == 422:
+            raise TranslationUnavailableError(response.text)
+        response.raise_for_status()
+        return response.json()["text"]
+
+    async def synthesize_audio(self, text: str, lang: str) -> str:
+        payload = {"text": text, "lang": lang}
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.post(
+                f"{self._base_url}/synthesize", json=payload, headers=self._headers
+            )
+        response.raise_for_status()
+        filename = f"{uuid.uuid4().hex}.wav"
+        (self._storage_dir / filename).write_bytes(response.content)
+        return f"/audio/{filename}"
+
+    async def transcribe_audio(self, audio_url: str, language: str | None = None) -> tuple[str, str]:
+        local_path = Path(await self._ensure_local_file(audio_url))
+        audio_bytes = await asyncio.to_thread(local_path.read_bytes)
+        files = {"fichier": (local_path.name, audio_bytes)}
+        data = {"langue": language} if language else {}
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.post(
+                f"{self._base_url}/transcribe", files=files, data=data, headers=self._headers
+            )
+        response.raise_for_status()
+        # Le champ "language" du pod est un NOM (ex. "French"), pas un code :
+        # on ne le renvoie pas. On renvoie la langue demandée, sinon "unknown".
+        return response.json()["text"], language or "unknown"
+
+
 def get_translation_service() -> TranslationService:
-    # Point d'extension unique. Bascule contrôlée par USE_REAL_PIPELINE dans
-    # .env : false -> stub (dev rapide sans dépendances externes),
-    # true -> vrai pipeline Groq/NLLB/MMS.
-    if get_settings().use_real_pipeline:
-        return RealTranslationService()
-    return StubTranslationService()
+    # Point d'extension unique. USE_REAL_PIPELINE=false -> stub (dev rapide).
+    # Sinon PIPELINE_MODE=remote -> pod GPU distant, PIPELINE_MODE=local
+    # (défaut) -> pipeline dans le conteneur.
+    settings = get_settings()
+    if not settings.use_real_pipeline:
+        return StubTranslationService()
+    if settings.pipeline_mode == "remote":
+        return RemoteTranslationService()
+    return RealTranslationService()
