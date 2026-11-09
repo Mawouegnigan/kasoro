@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import hash_secret
+from app.core.security import hash_secret, verify_secret
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate
 
@@ -42,3 +42,11 @@ async def update_user(db: AsyncSession, user: User, data: UserUpdate) -> User:
 async def delete_user(db: AsyncSession, user: User) -> None:
     await db.delete(user)
     await db.commit()
+
+
+async def change_password(db: AsyncSession, user: User, old_password: str, new_password: str) -> bool:
+    if not verify_secret(old_password, user.auth_secret_hash):
+        return False
+    user.auth_secret_hash = hash_secret(new_password)
+    await db.commit()
+    return True

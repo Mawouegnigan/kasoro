@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class UserBase(BaseModel):
@@ -11,7 +11,7 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    pin: str  # 4-6 chiffres, jamais stocké en clair (voir crud/user.py)
+    pin: str = Field(min_length=8, max_length=72)  # mot de passe : 8 caractères minimum (jamais stocké en clair, voir crud/user.py)
 
 
 class UserUpdate(BaseModel):
@@ -26,3 +26,8 @@ class UserRead(UserBase):
     id: uuid.UUID
     is_active: bool
     created_at: datetime
+
+
+class PasswordChange(BaseModel):
+    old_password: str
+    new_password: str = Field(min_length=8, max_length=72)

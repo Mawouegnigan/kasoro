@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user, get_db, require_self
 from app.crud import user as crud_user
 from app.models.user import User
-from app.schemas.user import UserCreate, UserRead, UserUpdate
+from app.schemas.user import PasswordChange, UserCreate, UserRead, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -67,3 +67,18 @@ async def delete_user(
     if user is None:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
     await crud_user.delete_user(db, user)
+
+
+@router.post("/{user_id}/password", status_code=204)
+async def change_password(
+    user_id: uuid.UUID,
+    data: PasswordChange,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    await require_self(user_id, current_user)
+    user = await crud_user.get_user(db, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    if not await crud_user.change_password(db, user, data.old_password, data.new_password):
+        raise HTTPException(status_code=400, detail="Ancien mot de passe incorrect")
