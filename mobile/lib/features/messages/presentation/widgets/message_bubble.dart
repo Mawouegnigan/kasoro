@@ -8,6 +8,8 @@ import '../../../../core/constants/supported_languages.dart';
 import '../../../../core/network/api_exception.dart';
 import 'correction_dialog.dart';
 import '../../../../core/utils/audio_url_resolver.dart';
+import '../../../auth/application/auth_providers.dart';
+import '../../../auth/application/auth_state.dart';
 import '../../../contacts/application/contacts_providers.dart' show currentUserIdProvider;
 import '../../application/messages_providers.dart';
 import '../../application/reading_language_provider.dart';
@@ -90,16 +92,35 @@ class _MessageBubbleState extends ConsumerState<MessageBubble> {
           ? Text(widget.message.originalText ?? '')
           : _OwnAudioMessage(audioUrl: widget.message.originalAudioUrl);
     } else {
-      final String? readingLanguage =
+      // Langue choisie à la main pour CE message (pastille), sinon langue
+      // du compte : la traduction part d'office, sans geste du lecteur.
+      final String? chosenLanguage =
           ref.watch(readingLanguageControllerProvider(widget.message.id));
+      final String accountLanguage = ref.watch(
+        authControllerProvider.select(
+          (s) => s is AuthAuthenticated ? s.user.preferredLanguage : 'fr',
+        ),
+      );
+      final String readingLanguage = chosenLanguage ?? accountLanguage;
 
-      if (readingLanguage == null) {
-        // Rien n'est téléchargé tant que le destinataire n'a pas choisi
-        // explicitement une langue — comme le bouton de téléchargement
-        // d'un vocal WhatsApp.
-        content = _ChooseLanguagePrompt(
-          messageId: widget.message.id,
-          originLanguage: widget.message.originalLanguage,
+      if (readingLanguage == widget.message.originalLanguage) {
+        // Même langue que celle d'envoi : rien à traduire, on affiche le
+        // message tel quel (aucun appel au pipeline).
+        content = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _ReadingLanguageChip(
+              messageId: widget.message.id,
+              originLanguage: widget.message.originalLanguage,
+              readingLanguage: readingLanguage,
+            ),
+            const SizedBox(height: 4),
+            if (widget.message.type == MessageType.text)
+              Text(widget.message.originalText ?? '')
+            else
+              _OwnAudioMessage(audioUrl: widget.message.originalAudioUrl),
+          ],
         );
       } else {
         final translationAsync = ref.watch(
@@ -113,6 +134,7 @@ class _MessageBubbleState extends ConsumerState<MessageBubble> {
             _ReadingLanguageChip(
               messageId: widget.message.id,
               originLanguage: widget.message.originalLanguage,
+              readingLanguage: readingLanguage,
             ),
             const SizedBox(height: 4),
             translationAsync.when(
@@ -293,81 +315,24 @@ class _OwnAudioMessageState extends State<_OwnAudioMessage> {
   }
 }
 
-/// Affiché tant que le destinataire n'a pas choisi de langue pour ce
-/// message — rien n'est téléchargé avant ce choix explicite, comme le
-/// bouton de téléchargement d'un vocal WhatsApp.
-class _ChooseLanguagePrompt extends ConsumerWidget {
-  const _ChooseLanguagePrompt({required this.messageId, required this.originLanguage});
-
-  final String messageId;
-  final String originLanguage;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final String originLabel = supportedLanguages
-        .firstWhere((l) => l.$1 == originLanguage, orElse: () => (originLanguage, originLanguage))
-        .$2;
-
-    return InkWell(
-      onTap: () => _pickLanguage(context, ref),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.download_rounded, size: 18, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              'Envoyé en $originLabel — choisir une langue',
-              style: const TextStyle(fontSize: 12),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _pickLanguage(BuildContext context, WidgetRef ref) async {
-    final String? picked = await showModalBottomSheet<String>(
-      context: context,
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text('Lire/écouter ce message en', style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-              for (final lang in supportedLanguages)
-                ListTile(
-                  title: Text(lang.$2),
-                  onTap: () => Navigator.of(context).pop(lang.$1),
-                ),
-            ],
-          ),
-        );
-      },
-    );
-
-    if (picked != null) {
-      ref.read(readingLanguageControllerProvider(messageId).notifier).select(picked);
-    }
-  }
-}
-
-/// Affiché une fois qu'une langue a été choisie : montre la langue
-/// active et permet d'en changer (relance une nouvelle traduction).
+/// Affiché sous chaque message reçu : montre la langue de lecture active
+/// (celle du compte par défaut, ou celle choisie pour ce message) et
+/// permet d'en changer (relance une nouvelle traduction).
 class _ReadingLanguageChip extends ConsumerWidget {
-  const _ReadingLanguageChip({required this.messageId, required this.originLanguage});
+  const _ReadingLanguageChip({
+    required this.messageId,
+    required this.originLanguage,
+    required this.readingLanguage,
+  });
 
   final String messageId;
   final String originLanguage;
+  final String readingLanguage;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final String? selected = ref.watch(readingLanguageControllerProvider(messageId));
     final String selectedLabel = supportedLanguages
-        .firstWhere((l) => l.$1 == selected, orElse: () => (selected ?? '', selected ?? ''))
+        .firstWhere((l) => l.$1 == readingLanguage, orElse: () => (readingLanguage, readingLanguage))
         .$2;
     final String originLabel = supportedLanguages
         .firstWhere((l) => l.$1 == originLanguage, orElse: () => (originLanguage, originLanguage))
