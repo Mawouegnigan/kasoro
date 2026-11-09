@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../application/auth_providers.dart';
 import '../../application/auth_state.dart';
-import '../widgets/pin_input_field.dart';
+import '../widgets/password_input_field.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -29,7 +29,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
     ref.read(authControllerProvider.notifier).login(
           phoneNumber: _phoneController.text.trim(),
-          pin: _pinController.text.trim(),
+          pin: _pinController.text,
         );
   }
 
@@ -77,7 +77,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       : null,
                 ),
                 const SizedBox(height: 16),
-                PinInputField(controller: _pinController),
+                PasswordInputField(controller: _pinController),
                 const SizedBox(height: 32),
                 ElevatedButton(
                   onPressed: isLoading ? null : _submit,

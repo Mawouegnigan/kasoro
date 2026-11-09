@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../auth/application/auth_providers.dart';
 import '../../../contacts/application/contacts_providers.dart' show currentUserIdProvider;
 import '../../../users/data/repositories/users_repository.dart';
 import '../../application/conversation_members_provider.dart';
@@ -26,9 +25,9 @@ class ConversationsListScreen extends ConsumerWidget {
             onPressed: () => context.push('/contacts'),
           ),
           IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Se déconnecter',
-            onPressed: () => ref.read(authControllerProvider.notifier).logout(),
+            icon: const Icon(Icons.account_circle_outlined),
+            tooltip: 'Profil',
+            onPressed: () => context.push('/profile'),
           ),
         ],
       ),

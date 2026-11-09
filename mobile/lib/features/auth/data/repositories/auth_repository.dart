@@ -54,6 +54,43 @@ class AuthRepository {
     }
   }
 
+  Future<UserModel> updateProfile({
+    required String userId,
+    required String displayName,
+    required String preferredLanguage,
+  }) async {
+    try {
+      final Response<dynamic> response = await _dio.patch<dynamic>(
+        '/users/$userId',
+        data: {
+          'display_name': displayName,
+          'preferred_language': preferredLanguage,
+        },
+      );
+      return UserModel.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<void> changePassword({
+    required String userId,
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    try {
+      await _dio.post<dynamic>(
+        '/users/$userId/password',
+        data: {
+          'old_password': oldPassword,
+          'new_password': newPassword,
+        },
+      );
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
   Future<UserModel> fetchUser(String userId) async {
     try {
       final Response<dynamic> response = await _dio.get<dynamic>('/users/$userId');

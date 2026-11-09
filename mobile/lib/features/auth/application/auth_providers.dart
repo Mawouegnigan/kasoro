@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/storage/secure_storage_service.dart';
 import '../../../core/utils/jwt_decoder.dart';
+import '../data/models/user_model.dart';
 import '../data/repositories/auth_repository.dart';
 import 'auth_state.dart';
 
@@ -90,6 +91,11 @@ class AuthController extends Notifier<AuthState> {
     } on ApiException catch (e) {
       state = AuthError(e.message);
     }
+  }
+
+  /// Met a jour l utilisateur connecte apres une modification reussie du profil.
+  void setUser(UserModel user) {
+    state = AuthAuthenticated(user);
   }
 
   Future<void> logout() async {

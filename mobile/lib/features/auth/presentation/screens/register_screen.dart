@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/supported_languages.dart';
 import '../../application/auth_providers.dart';
 import '../../application/auth_state.dart';
-import '../widgets/pin_input_field.dart';
+import '../widgets/password_input_field.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -18,6 +18,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _phoneController = TextEditingController();
   final _nameController = TextEditingController();
   final _pinController = TextEditingController();
+  final _confirmController = TextEditingController();
   String _selectedLanguage = supportedLanguages.first.$1;
 
   @override
@@ -25,6 +26,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _phoneController.dispose();
     _nameController.dispose();
     _pinController.dispose();
+    _confirmController.dispose();
     super.dispose();
   }
 
@@ -34,7 +36,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           phoneNumber: _phoneController.text.trim(),
           displayName: _nameController.text.trim(),
           preferredLanguage: _selectedLanguage,
-          pin: _pinController.text.trim(),
+          pin: _pinController.text,
         );
   }
 
@@ -94,7 +96,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
-                PinInputField(controller: _pinController, label: 'Choisissez un PIN'),
+                PasswordInputField(
+                  controller: _pinController,
+                  label: 'Choisissez un mot de passe',
+                  checkLength: true,
+                ),
+                const SizedBox(height: 16),
+                PasswordInputField(
+                  controller: _confirmController,
+                  label: 'Confirmez le mot de passe',
+                  mustMatch: _pinController,
+                ),
                 const SizedBox(height: 32),
                 ElevatedButton(
                   onPressed: isLoading ? null : _submit,
