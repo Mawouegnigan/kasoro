@@ -50,6 +50,14 @@ class ConversationsRepository {
     }
   }
 
+  Future<void> markRead(String conversationId) async {
+    try {
+      await _dio.post<void>('/conversations/$conversationId/read');
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
   Future<List<ConversationMemberModel>> fetchMembers(String conversationId) async {
     try {
       final response = await _dio.get<List<dynamic>>('/conversations/$conversationId/members');

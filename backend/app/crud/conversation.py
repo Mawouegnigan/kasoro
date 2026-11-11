@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -57,6 +57,10 @@ async def list_conversations_for_user(db: AsyncSession, user_id: uuid.UUID) -> l
             conversation.last_message_text = last.original_text
             conversation.last_message_at = last.created_at
             conversation.last_message_sender_id = last.sender_id
+            member = (await db.execute(select(ConversationMember).where(ConversationMember.conversation_id == conversation.id, ConversationMember.user_id == user_id))).scalar_one_or_none()
+            if member is not None:
+                counted = await db.execute(select(func.count()).select_from(Message).where(Message.conversation_id == conversation.id, Message.sender_id != user_id, Message.created_at > member.last_read_at))
+                conversation.unread_count = counted.scalar_one()
     return conversations
 
 
@@ -84,3 +88,15 @@ async def list_members(db: AsyncSession, conversation_id: uuid.UUID) -> list[Con
         select(ConversationMember).where(ConversationMember.conversation_id == conversation_id)
     )
     return list(result.scalars().all())
+
+
+async def mark_read(db: AsyncSession, conversation_id: uuid.UUID, user_id: uuid.UUID) -> None:
+    result = await db.execute(
+        select(ConversationMember).where(
+            ConversationMember.conversation_id == conversation_id, ConversationMember.user_id == user_id
+        )
+    )
+    member = result.scalar_one_or_none()
+    if member is not None:
+        member.last_read_at = func.now()
+        await db.commit()

@@ -8,6 +8,7 @@ class ConversationModel {
     this.lastMessageText,
     this.lastMessageAt,
     this.lastMessageSenderId,
+    this.unreadCount = 0,
   });
 
   factory ConversationModel.fromJson(Map<String, dynamic> json) {
@@ -22,6 +23,7 @@ class ConversationModel {
           ? null
           : DateTime.parse(json['last_message_at'] as String),
       lastMessageSenderId: json['last_message_sender_id'] as String?,
+      unreadCount: (json['unread_count'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -33,6 +35,7 @@ class ConversationModel {
   final String? lastMessageText;
   final DateTime? lastMessageAt;
   final String? lastMessageSenderId;
+  final int unreadCount;
 }
 
 class ConversationMemberModel {

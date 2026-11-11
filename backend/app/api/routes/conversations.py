@@ -24,7 +24,7 @@ async def create_conversation(
 ):
     if current_user.id not in data.member_ids:
         raise HTTPException(
-            status_code=403, detail="Tu dois faire partie des membres de la conversation créée"
+            status_code=403, detail="Vous devez faire partie des membres de la conversation créée"
         )
     if not data.is_group and len(data.member_ids) != 2:
         raise HTTPException(
@@ -80,3 +80,13 @@ async def list_members(
 ):
     await require_conversation_member(db, conversation_id, current_user)
     return await crud_conv.list_members(db, conversation_id)
+
+
+@router.post("/{conversation_id}/read", status_code=204)
+async def mark_read(
+    conversation_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    await require_conversation_member(db, conversation_id, current_user)
+    await crud_conv.mark_read(db, conversation_id, current_user.id)

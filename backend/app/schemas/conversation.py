@@ -22,6 +22,7 @@ class ConversationRead(BaseModel):
     last_message_text: str | None = None
     last_message_at: datetime | None = None
     last_message_sender_id: uuid.UUID | None = None
+    unread_count: int = 0
 
 
 class ConversationMemberCreate(BaseModel):

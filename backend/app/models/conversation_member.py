@@ -33,6 +33,7 @@ class ConversationMember(Base):
     )
     language: Mapped[str] = mapped_column(String(10), nullable=False)
     joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    last_read_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     conversation = relationship("Conversation", back_populates="members")
     user = relationship("User", back_populates="memberships")

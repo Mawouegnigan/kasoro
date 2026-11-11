@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../conversations/application/conversations_providers.dart';
+import '../../../conversations/data/repositories/conversations_repository.dart';
 import '../../application/messages_providers.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/message_input_bar.dart';
@@ -19,14 +21,25 @@ class ConversationScreen extends ConsumerStatefulWidget {
 class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   Timer? _refreshTimer;
 
+  Future<void> _markRead({bool refreshList = false}) async {
+    try {
+      await ref.read(conversationsRepositoryProvider).markRead(widget.conversationId);
+      if (refreshList && mounted) ref.invalidate(conversationsListProvider);
+    } catch (_) {
+      // Sans importance : le prochain passage du minuteur reessaiera.
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    _markRead(refreshList: true);
     // Recharge la liste des messages toutes les 3 secondes tant que l'écran
     // est ouvert, pour voir arriver les nouveaux messages sans quitter l'écran.
     _refreshTimer = Timer.periodic(const Duration(seconds: 3), (_) {
       if (!mounted) return;
       ref.invalidate(messagesListProvider(widget.conversationId));
+      _markRead();
     });
   }
 
