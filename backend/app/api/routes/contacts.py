@@ -19,7 +19,7 @@ async def create_contact(
     current_user: User = Depends(get_current_user),
 ):
     if data.owner_id == data.contact_user_id:
-        raise HTTPException(status_code=400, detail="On ne peut pas s'ajouter soi-même")
+        raise HTTPException(status_code=400, detail="Vous ne pouvez pas vous ajouter vous-même")
     await require_self(data.owner_id, current_user)
     return await crud_contact.create_contact(db, data)
 

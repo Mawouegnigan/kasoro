@@ -34,7 +34,15 @@ async def create_message(
         raise HTTPException(
             status_code=400, detail="original_audio_url requis pour un message audio"
         )
-    return await crud_message.create_message(db, data, translation_service)
+    try:
+        return await crud_message.create_message(db, data, translation_service)
+    except crud_message.NoSpeechDetectedError:
+        raise HTTPException(
+            status_code=422,
+            detail="Aucune parole détectée. Réessayez en parlant plus près du micro.",
+        )
+    except TranslationUnavailableError:
+        raise HTTPException(status_code=422, detail="translation_unavailable")
 
 
 @router.get("/conversation/{conversation_id}", response_model=list[MessageRead])

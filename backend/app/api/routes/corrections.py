@@ -12,6 +12,9 @@ from app.schemas.correction import CorrectionCreate, CorrectionRead, CorrectionV
 
 router = APIRouter(prefix="/corrections", tags=["corrections"])
 
+# Langues ouvertes à la correction pendant la phase d'entraînement.
+CORRECTABLE_LANGUAGES = {"fon", "wo"}
+
 
 @router.post("", response_model=CorrectionRead, status_code=201)
 async def create_correction(
@@ -28,6 +31,8 @@ async def create_correction(
         raise HTTPException(status_code=400, detail="language requis pour une traduction")
     if data.language is not None and len(data.language) > 10:
         raise HTTPException(status_code=400, detail="language invalide")
+    if not {message.original_language, data.language} & CORRECTABLE_LANGUAGES:
+        raise HTTPException(status_code=422, detail="La correction n'est pas encore ouverte pour cette langue")
 
     return await crud_correction.create_correction(
         db,
@@ -63,7 +68,7 @@ async def validate_correction(
         raise HTTPException(status_code=409, detail="Correction deja traitee")
     if correction.submitted_by == current_user.id:
         raise HTTPException(
-            status_code=403, detail="Tu ne peux pas valider ta propre correction"
+            status_code=403, detail="Vous ne pouvez pas valider votre propre correction"
         )
 
     message = await crud_message.get_message(db, correction.message_id)
@@ -73,7 +78,7 @@ async def validate_correction(
 
     if correction.language != current_user.preferred_language:
         raise HTTPException(
-            status_code=403, detail="Ta langue ne correspond pas a cette correction"
+            status_code=403, detail="Votre langue ne correspond pas à cette correction"
         )
 
     return await crud_correction.decide_correction(db, correction, current_user, data.approve)

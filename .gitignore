@@ -27,3 +27,6 @@ backend/.env
 # Divers OS
 .DS_Store
 Thumbs.db
+backend/corrections.csv
+backend/export_corrections.sql
+backend/*.m4a

@@ -52,5 +52,5 @@ class MessageInLanguage(BaseModel):
     message_id: uuid.UUID
     language: str
     text: str
-    audio_url: str | None
+    audio_url: str | None = None
     was_cached: bool

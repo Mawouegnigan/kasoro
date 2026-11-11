@@ -55,5 +55,5 @@ async def require_conversation_member(
     if result.scalar_one_or_none() is None:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Tu n'es pas membre de cette conversation",
+            detail="Vous n'êtes pas membre de cette conversation",
         )

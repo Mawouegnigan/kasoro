@@ -63,6 +63,25 @@ class StubTranslationService(TranslationService):
         return "[transcription à brancher]", "fr"
 
 
+# Phrases que Whisper invente souvent sur du silence ou du bruit.
+HALLUCINATIONS_STT = (
+    "sous-titres",
+    "sous-titrage",
+    "merci d'avoir regardé",
+    "merci d'avoir regarde",
+    "thanks for watching",
+    "thank you for watching",
+    "amara.org",
+)
+
+
+def nettoyer_transcription(text: str) -> str:
+    text = (text or "").strip()
+    if any(p in text.lower() for p in HALLUCINATIONS_STT):
+        return ""
+    return text
+
+
 class RealTranslationService(TranslationService):
     """Branche le pipeline réel : pipeline/pipeline.py (Groq Whisper pour le
     STT, NLLB-200 en local pour le MT, MMS de Meta en local pour le TTS).
@@ -161,6 +180,12 @@ class RemoteTranslationService(RealTranslationService):
         self._timeout = httpx.Timeout(60.0, connect=10.0)
 
     async def translate_text(self, text: str, source_lang: str, target_lang: str) -> str:
+        try:
+            return await self._translate_remote(text, source_lang, target_lang)
+        except httpx.HTTPError as e:
+            raise TranslationUnavailableError(f"service GPU injoignable : {e!r}") from e
+
+    async def _translate_remote(self, text: str, source_lang: str, target_lang: str) -> str:
         payload = {"text": text, "source_lang": source_lang, "target_lang": target_lang}
         async with httpx.AsyncClient(timeout=self._timeout) as client:
             response = await client.post(
@@ -172,6 +197,12 @@ class RemoteTranslationService(RealTranslationService):
         return response.json()["text"]
 
     async def synthesize_audio(self, text: str, lang: str) -> str:
+        try:
+            return await self._synthesize_remote(text, lang)
+        except httpx.HTTPError as e:
+            raise TranslationUnavailableError(f"service GPU injoignable : {e!r}") from e
+
+    async def _synthesize_remote(self, text: str, lang: str) -> str:
         payload = {"text": text, "lang": lang}
         async with httpx.AsyncClient(timeout=self._timeout) as client:
             response = await client.post(
@@ -183,6 +214,12 @@ class RemoteTranslationService(RealTranslationService):
         return f"/audio/{filename}"
 
     async def transcribe_audio(self, audio_url: str, language: str | None = None) -> tuple[str, str]:
+        try:
+            return await self._transcribe_remote(audio_url, language)
+        except httpx.HTTPError as e:
+            raise TranslationUnavailableError(f"service GPU injoignable : {e!r}") from e
+
+    async def _transcribe_remote(self, audio_url: str, language: str | None = None) -> tuple[str, str]:
         local_path = Path(await self._ensure_local_file(audio_url))
         audio_bytes = await asyncio.to_thread(local_path.read_bytes)
         files = {"fichier": (local_path.name, audio_bytes)}
@@ -194,7 +231,7 @@ class RemoteTranslationService(RealTranslationService):
         response.raise_for_status()
         # Le champ "language" du pod est un NOM (ex. "French"), pas un code :
         # on ne le renvoie pas. On renvoie la langue demandée, sinon "unknown".
-        return response.json()["text"], language or "unknown"
+        return nettoyer_transcription(response.json()["text"]), language or "unknown"
 
 
 def get_translation_service() -> TranslationService:

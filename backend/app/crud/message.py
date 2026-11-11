@@ -7,6 +7,7 @@ from app.models.message import Message, MessageType
 from app.models.message_translation import MessageTranslation
 from app.schemas.message import MessageCreate
 from app.services.translation import TranslationService
+from app.services.translation import TranslationUnavailableError
 
 
 async def create_message(
@@ -17,6 +18,8 @@ async def create_message(
     # Si c'est un message audio et qu'on n'a pas déjà de texte, transcrire (STT).
     if message.message_type == MessageType.audio and not message.original_text:
         text, _ = await translation_service.transcribe_audio(message.original_audio_url, message.original_language)
+        if not text.strip():
+            raise NoSpeechDetectedError()
         message.original_text = text
         # La langue déclarée par le client (choisie explicitement via un
         # sélecteur, pas saisie en texte libre) est la source fiable — on
@@ -45,6 +48,14 @@ async def list_messages_for_conversation(
         .limit(limit)
     )
     return list(reversed(result.scalars().all()))
+
+
+# Langues dont la voix n'est pas garantie : le texte est livré sans audio.
+AUDIO_OPTIONAL_LANGUAGES = {"wo"}
+
+
+class NoSpeechDetectedError(Exception):
+    """Aucune parole exploitable dans l'audio (silence ou bruit)."""
 
 
 async def get_or_create_translation(
@@ -92,9 +103,14 @@ async def get_or_create_translation(
         source_lang=message.original_language,
         target_lang=target_language,
     )
-    translated_audio_url = await translation_service.synthesize_audio(
-        text=translated_text, lang=target_language
-    )
+    translated_audio_url: str | None = None
+    try:
+        translated_audio_url = await translation_service.synthesize_audio(
+            text=translated_text, lang=target_language
+        )
+    except TranslationUnavailableError:
+        if target_language not in AUDIO_OPTIONAL_LANGUAGES:
+            raise
 
     translation = MessageTranslation(
         message_id=message.id,

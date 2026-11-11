@@ -15,6 +15,7 @@ NLLB_CODES = {
     "en": "eng_Latn",
     "yo": "yor_Latn",
     "fon": "fon_Latn",
+    "wo": "wol_Latn",
 }
 
 
