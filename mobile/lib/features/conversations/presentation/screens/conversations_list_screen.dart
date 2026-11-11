@@ -20,6 +20,11 @@ class ConversationsListScreen extends ConsumerWidget {
         title: const Text('Kasoro'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.fact_check_outlined),
+            tooltip: 'Corrections à valider',
+            onPressed: () => context.push('/corrections'),
+          ),
+          IconButton(
             icon: const Icon(Icons.contacts_outlined),
             tooltip: 'Contacts',
             onPressed: () => context.push('/contacts'),
@@ -104,7 +109,17 @@ class _ConversationTile extends ConsumerWidget {
           : Text(preview, maxLines: 1, overflow: TextOverflow.ellipsis),
       trailing: at == null
           ? null
-          : Text(_formatTime(at), style: Theme.of(context).textTheme.bodySmall),
+          : Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(_formatTime(at), style: Theme.of(context).textTheme.bodySmall),
+                if (conversation.unreadCount > 0) ...[
+                  const SizedBox(height: 4),
+                  Badge(label: Text('${conversation.unreadCount}')),
+                ],
+              ],
+            ),
       onTap: () => context.push('/conversations/${conversation.id}'),
     );
   }

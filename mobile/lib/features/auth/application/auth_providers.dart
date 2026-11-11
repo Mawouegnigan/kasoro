@@ -78,9 +78,9 @@ class AuthController extends Notifier<AuthState> {
       final String? userId = JwtDecoder.extractUserId(auth.accessToken);
       if (userId == null) {
         state = const AuthError(
-          "Connexion réussie mais le token ne contient pas d'identifiant "
-          "utilisateur exploitable (claim 'sub' manquant). Vérifie "
-          "l'émission du JWT côté backend.",
+          "Connexion impossible : réponse du serveur invalide. "
+          "Réessayez dans un instant. "
+          "Si le problème continue, contactez le support.",
         );
         return;
       }

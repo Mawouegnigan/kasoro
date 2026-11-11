@@ -6,6 +6,7 @@ import '../../features/auth/application/auth_providers.dart';
 import '../../features/auth/application/auth_state.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/profile_screen.dart';
+import '../../features/corrections/presentation/screens/validation_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/contacts/presentation/screens/add_contact_screen.dart';
 import '../../features/contacts/presentation/screens/contacts_screen.dart';
@@ -48,6 +49,7 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
       GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen()),
+      GoRoute(path: '/corrections', builder: (context, state) => const ValidationScreen()),
       GoRoute(path: '/contacts', builder: (context, state) => const ContactsScreen()),
       GoRoute(path: '/contacts/add', builder: (context, state) => const AddContactScreen()),
       GoRoute(

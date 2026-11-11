@@ -6,4 +6,5 @@ const List<(String code, String label)> supportedLanguages = [
   ('fon', 'Fon'),
   ('yo', 'Yoruba'),
   ('en', 'English'),
+  ('wo', 'Wolof'),
 ];

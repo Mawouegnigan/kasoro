@@ -406,6 +406,10 @@ class _CorrectionLink extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const List<String> ouvertes = ['fon', 'wo'];
+    if (!ouvertes.contains(readingLanguage) && !ouvertes.contains(originLanguage)) {
+      return const SizedBox.shrink();
+    }
     return InkWell(
       onTap: () => showCorrectionDialog(
         context,

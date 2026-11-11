@@ -84,7 +84,7 @@ class _CorrectionDialogState extends ConsumerState<_CorrectionDialog> {
           );
       navigator.pop();
       messenger.showSnackBar(
-        const SnackBar(content: Text('Merci ! Votre correction sera vérifiée par un autre locuteur.')),
+        const SnackBar(content: Text('Merci ! Votre correction sera relue par des locuteurs natifs.')),
       );
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -146,8 +146,8 @@ class _CorrectionDialogState extends ConsumerState<_CorrectionDialog> {
             const SizedBox(height: 4),
             Text(
               'En envoyant, vous acceptez que votre correction soit conservée et utilisée '
-              'pour améliorer les traductions de Kasoro. Elle sera vérifiée par un '
-              'autre locuteur avant d\'être retenue.',
+              'pour améliorer les traductions de Kasoro. Elle sera vérifiée par des '
+              'locuteurs natifs avant d\'être retenue.',
               style: TextStyle(
                 fontSize: 11,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,

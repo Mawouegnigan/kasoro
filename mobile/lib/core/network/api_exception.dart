@@ -36,6 +36,12 @@ class ApiException implements Exception {
         isForbidden: true,
       );
     }
+    if (status == 422 && data is Map<String, dynamic> && data['detail'] is List) {
+      return ApiException(
+        message: 'Informations invalides, vérifiez les champs saisis.',
+        statusCode: status,
+      );
+    }
     if (status == 422 && serverMessage == 'translation_unavailable') {
       return ApiException(
         message: 'Traduction indisponible pour cette langue.',
