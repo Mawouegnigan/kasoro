@@ -159,6 +159,12 @@ class _MessageBubbleState extends ConsumerState<MessageBubble> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(translation.text),
+                  _CorrectionLink(
+                    messageId: widget.message.id,
+                    originLanguage: widget.message.originalLanguage,
+                    readingLanguage: readingLanguage,
+                    isAudio: widget.message.type == MessageType.audio,
+                  ),
                   if (translation.audioUrl != null) ...[
                     const SizedBox(height: 4),
                     InkWell(
@@ -406,7 +412,7 @@ class _CorrectionLink extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const List<String> ouvertes = ['fon', 'wo'];
+    const List<String> ouvertes = ['fon', 'yo', 'wo'];
     if (!ouvertes.contains(readingLanguage) && !ouvertes.contains(originLanguage)) {
       return const SizedBox.shrink();
     }
