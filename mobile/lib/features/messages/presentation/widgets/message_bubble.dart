@@ -84,7 +84,7 @@ class _MessageBubbleState extends ConsumerState<MessageBubble> {
 
     final Widget content;
 
-    if (isMine) {
+    if (false) {
       // On affiche son propre message tel qu'envoyé, sans repasser par
       // le pipeline de traduction (qui traduit vers les AUTRES langues,
       // pas besoin de se traduire soi-même vers sa propre langue).
@@ -101,7 +101,7 @@ class _MessageBubbleState extends ConsumerState<MessageBubble> {
           (s) => s is AuthAuthenticated ? s.user.preferredLanguage : 'fr',
         ),
       );
-      final String readingLanguage = chosenLanguage ?? accountLanguage;
+      final String readingLanguage = chosenLanguage ?? (isMine ? widget.message.originalLanguage : accountLanguage);
 
       if (readingLanguage == widget.message.originalLanguage) {
         // Même langue que celle d'envoi : rien à traduire, on affiche le
