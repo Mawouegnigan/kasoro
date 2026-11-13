@@ -3,7 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../contacts/application/contacts_providers.dart';
+import '../../../conversations/application/conversation_members_provider.dart';
 import '../../../conversations/application/conversations_providers.dart';
+import '../../../users/data/repositories/users_repository.dart';
 import '../../../conversations/data/repositories/conversations_repository.dart';
 import '../../application/messages_providers.dart';
 import '../widgets/message_bubble.dart';
@@ -52,9 +55,18 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   @override
   Widget build(BuildContext context) {
     final messagesAsync = ref.watch(messagesListProvider(widget.conversationId));
+    final String? me = ref.watch(currentUserIdProvider);
+    String title = 'Conversation';
+    final members = ref.watch(conversationMembersProvider(widget.conversationId)).valueOrNull;
+    if (members != null && me != null && members.length == 2) {
+      final String other = members.map((m) => m.userId).firstWhere((id) => id != me, orElse: () => '');
+      if (other.isNotEmpty) {
+        title = ref.watch(publicUserProvider(other)).valueOrNull?.displayName ?? 'Conversation';
+      }
+    }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Conversation')),
+      appBar: AppBar(title: Text(title)),
       body: Column(
         children: [
           Expanded(
