@@ -31,6 +31,7 @@ class _MessageBubbleState extends ConsumerState<MessageBubble> {
   bool _isBuffering = false;
   String? _playbackError;
   String? _loadedAudioUrl;
+  bool _showOriginal = false;
 
   @override
   void dispose() {
@@ -160,6 +161,33 @@ class _MessageBubbleState extends ConsumerState<MessageBubble> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(translation.text),
+                  if ((widget.message.originalText ?? '').isNotEmpty) ...[
+                    InkWell(
+                      onTap: () => setState(() => _showOriginal = !_showOriginal),
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          _showOriginal ? "Masquer l'original" : "Voir l'original",
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (_showOriginal)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          widget.message.originalText!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontStyle: FontStyle.italic,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                  ],
                   _CorrectionLink(
                     messageId: widget.message.id,
                     originLanguage: widget.message.originalLanguage,
