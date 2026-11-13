@@ -71,7 +71,7 @@ async def get_correction(db: AsyncSession, correction_id: uuid.UUID) -> Correcti
 
 
 async def list_pending_for_validator(
-    db: AsyncSession, user: User, skip: int = 0, limit: int = 50
+    db: AsyncSession, user: User, skip: int = 0, limit: int = 50, languages: str | None = None
 ) -> list[Correction]:
     """Corrections a valider, dans la langue de l'utilisateur, hors les siennes,
     limitees aux conversations dont il est membre."""
@@ -84,7 +84,7 @@ async def list_pending_for_validator(
             & (ConversationMember.user_id == user.id),
         )
         .where(Correction.status == STATUS_PENDING)
-        .where(Correction.language == user.preferred_language)
+        .where(Correction.language.in_([x.strip() for x in languages.split(",") if x.strip()] if languages else [user.preferred_language]))
         .where(or_(Correction.submitted_by.is_(None), Correction.submitted_by != user.id))
         .order_by(Correction.created_at)
         .offset(skip)

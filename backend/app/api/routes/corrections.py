@@ -13,7 +13,7 @@ from app.schemas.correction import CorrectionCreate, CorrectionRead, CorrectionV
 router = APIRouter(prefix="/corrections", tags=["corrections"])
 
 # Langues ouvertes à la correction pendant la phase d'entraînement.
-CORRECTABLE_LANGUAGES = {"fon", "wo"}
+CORRECTABLE_LANGUAGES = {"fon", "wo", "yo"}
 
 
 @router.post("", response_model=CorrectionRead, status_code=201)
@@ -47,17 +47,17 @@ async def create_correction(
 @router.get("/pending", response_model=list[CorrectionRead])
 async def list_pending(
     skip: int = 0,
-    limit: int = 50,
+    limit: int = 50, languages: str | None = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return await crud_correction.list_pending_for_validator(db, current_user, skip, limit)
+    return await crud_correction.list_pending_for_validator(db, current_user, skip, limit, languages)
 
 
 @router.post("/{correction_id}/validate", response_model=CorrectionRead)
 async def validate_correction(
     correction_id: uuid.UUID,
-    data: CorrectionValidate,
+    data: CorrectionValidate, languages: str | None = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -76,7 +76,7 @@ async def validate_correction(
         raise HTTPException(status_code=404, detail="Message introuvable")
     await require_conversation_member(db, message.conversation_id, current_user)
 
-    if correction.language != current_user.preferred_language:
+    if correction.language not in ([x.strip() for x in languages.split(",") if x.strip()] if languages else [current_user.preferred_language]):
         raise HTTPException(
             status_code=403, detail="Votre langue ne correspond pas à cette correction"
         )
