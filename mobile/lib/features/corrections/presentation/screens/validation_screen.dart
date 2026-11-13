@@ -38,11 +38,17 @@ class PendingCorrection {
   }
 }
 
+final validationLanguagesProvider = StateProvider<Set<String>>((ref) => <String>{});
+
 final pendingCorrectionsProvider =
     FutureProvider.autoDispose<List<PendingCorrection>>((ref) async {
+  final List<String> langs = ref.watch(validationLanguagesProvider).toList()..sort();
   try {
     final response =
-        await ref.read(dioClientProvider).get<List<dynamic>>('/corrections/pending');
+        await ref.read(dioClientProvider).get<List<dynamic>>(
+      '/corrections/pending',
+      queryParameters: langs.isEmpty ? null : {'languages': langs.join(',')},
+    );
     return response.data!
         .map((j) => PendingCorrection.fromJson(j as Map<String, dynamic>))
         .toList();
@@ -59,7 +65,7 @@ class ValidationScreen extends ConsumerWidget {
         ref.watch(pendingCorrectionsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Corrections à valider')),
+      appBar: AppBar(bottom: const PreferredSize(preferredSize: Size.fromHeight(56), child: _LanguageFilter()), title: const Text('Corrections à valider')),
       body: pending.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
@@ -93,6 +99,41 @@ class ValidationScreen extends ConsumerWidget {
     );
   }
 }
+class _LanguageFilter extends ConsumerWidget {
+  const _LanguageFilter();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final Set<String> selected = ref.watch(validationLanguagesProvider);
+    return SizedBox(
+      height: 56,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        children: [
+          for (final String code in const ['fon', 'yo', 'wo'])
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: FilterChip(
+                label: Text(_languageLabel(code)),
+                selected: selected.contains(code),
+                onSelected: (bool v) {
+                  final Set<String> next = {...selected};
+                  if (v) {
+                    next.add(code);
+                  } else {
+                    next.remove(code);
+                  }
+                  ref.read(validationLanguagesProvider.notifier).state = next;
+                },
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class _CorrectionCard extends ConsumerStatefulWidget {
   const _CorrectionCard({required this.item});
   final PendingCorrection item;
@@ -111,6 +152,9 @@ class _CorrectionCardState extends ConsumerState<_CorrectionCard> {
       await ref.read(dioClientProvider).post<Map<String, dynamic>>(
         '/corrections/${widget.item.id}/validate',
         data: {'approve': approve},
+        queryParameters: ref.read(validationLanguagesProvider).isEmpty
+            ? null
+            : {'languages': (ref.read(validationLanguagesProvider).toList()..sort()).join(',')},
       );
       ref.invalidate(pendingCorrectionsProvider);
       messenger.showSnackBar(SnackBar(
