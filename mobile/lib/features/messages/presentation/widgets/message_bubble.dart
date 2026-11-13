@@ -13,6 +13,7 @@ import '../../../auth/application/auth_state.dart';
 import '../../../contacts/application/contacts_providers.dart' show currentUserIdProvider;
 import '../../application/messages_providers.dart';
 import '../../application/reading_language_provider.dart';
+import '../../../users/data/repositories/users_repository.dart';
 import '../../data/models/message_model.dart';
 
 class MessageBubble extends ConsumerStatefulWidget {
@@ -201,6 +202,18 @@ class _MessageBubbleState extends ConsumerState<MessageBubble> {
       }
     }
 
+    final String? senderName = isMine
+        ? null
+        : ref.watch(publicUserProvider(widget.message.senderId)).valueOrNull?.displayName;
+    final DateTime sent = widget.message.createdAt.toLocal();
+    final DateTime now = DateTime.now();
+    final bool today = sent.year == now.year && sent.month == now.month && sent.day == now.day;
+    final String datePart = today
+        ? ''
+        : '${sent.day.toString().padLeft(2, '0')}/${sent.month.toString().padLeft(2, '0')}${sent.year == now.year ? '' : '/${sent.year}'} ';
+    final String sentAt = datePart +
+        '${sent.hour.toString().padLeft(2, '0')}:${sent.minute.toString().padLeft(2, '0')}';
+
     return Align(
       alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
       child: Column(
@@ -209,7 +222,7 @@ class _MessageBubbleState extends ConsumerState<MessageBubble> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              isMine ? 'Vous' : 'Reçu',
+              isMine ? 'Vous' : senderName ?? 'Reçu',
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
@@ -237,7 +250,21 @@ class _MessageBubbleState extends ConsumerState<MessageBubble> {
                 bottomRight: Radius.circular(isMine ? 4 : 16),
               ),
             ),
-            child: content,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Align(alignment: Alignment.centerLeft, child: content),
+                const SizedBox(height: 2),
+                Text(
+                  sentAt,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
