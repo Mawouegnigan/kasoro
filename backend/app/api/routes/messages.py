@@ -1,6 +1,9 @@
 import uuid
+from pathlib import Path
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import delete as sa_delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import (
@@ -11,6 +14,9 @@ from app.api.deps import (
     require_self,
 )
 from app.crud import message as crud_message
+from app.core.config import get_settings
+from app.models.message import Message
+from app.models.message_translation import MessageTranslation
 from app.models.user import User
 from app.schemas.message import MessageCreate, MessageInLanguage, MessageRead
 from app.services.translation import TranslationService, TranslationUnavailableError
@@ -55,6 +61,61 @@ async def list_messages(
 ):
     await require_conversation_member(db, conversation_id, current_user)
     return await crud_message.list_messages_for_conversation(db, conversation_id, skip, limit)
+
+
+def _remove_audio_file(url: str) -> None:
+    """Efface un fichier audio du dossier de stockage, sans jamais en sortir."""
+    root = Path(get_settings().audio_storage_dir).resolve()
+    path = urlparse(url).path
+    if "/uploads/" in path:
+        rel = "uploads/" + path.split("/uploads/", 1)[1]
+    elif "/audio/" in path:
+        rel = path.split("/audio/", 1)[1]
+    else:
+        return
+    target = (root / rel).resolve()
+    try:
+        target.relative_to(root)
+    except ValueError:
+        return
+    if target.is_file():
+        target.unlink()
+
+
+@router.delete("/{message_id}")
+async def delete_message(
+    message_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    message = await crud_message.get_message(db, message_id)
+    if message is None:
+        raise HTTPException(status_code=404, detail="Message introuvable")
+    if message.sender_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Vous ne pouvez supprimer que vos propres messages")
+
+    result = await db.execute(
+        select(MessageTranslation.translated_audio_url).where(
+            MessageTranslation.message_id == message.id
+        )
+    )
+    urls = {u for (u,) in result.all() if u}
+    if message.original_audio_url:
+        urls.add(message.original_audio_url)
+
+    await db.execute(
+        sa_delete(Message)
+        .where(Message.id == message.id)
+        .execution_options(synchronize_session=False)
+    )
+    await db.commit()
+
+    for url in urls:
+        try:
+            _remove_audio_file(url)
+        except OSError:
+            pass
+    return {"deleted": True}
 
 
 @router.get("/{message_id}/in/{language}", response_model=MessageInLanguage)
