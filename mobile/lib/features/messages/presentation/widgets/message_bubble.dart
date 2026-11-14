@@ -1,11 +1,13 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../../../../core/constants/supported_languages.dart';
 import '../../../../core/network/api_exception.dart';
+import '../../../../core/network/dio_client.dart';
 import 'correction_dialog.dart';
 import '../../../../core/utils/audio_url_resolver.dart';
 import '../../../auth/application/auth_providers.dart';
@@ -37,6 +39,40 @@ class _MessageBubbleState extends ConsumerState<MessageBubble> {
   void dispose() {
     _player?.dispose();
     super.dispose();
+  }
+
+  Future<void> _confirmDelete() async {
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Supprimer ce message ?'),
+        content: const Text(
+          'Il sera effacé pour tout le monde, avec ses traductions et ses corrections. Cette action est définitive.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await ref
+          .read(dioClientProvider)
+          .delete<Map<String, dynamic>>('/messages/${widget.message.id}');
+      ref.invalidate(messagesListProvider(widget.message.conversationId));
+    } on DioException catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(ApiException.fromDioException(e).message)),
+      );
+    }
   }
 
   Future<void> _togglePlay(String audioUrl) async {
@@ -282,7 +318,10 @@ class _MessageBubbleState extends ConsumerState<MessageBubble> {
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Align(alignment: Alignment.centerLeft, child: content),
+                GestureDetector(
+                  onLongPress: isMine ? _confirmDelete : null,
+                  child: Align(alignment: Alignment.centerLeft, child: content),
+                ),
                 const SizedBox(height: 2),
                 Text(
                   sentAt,
