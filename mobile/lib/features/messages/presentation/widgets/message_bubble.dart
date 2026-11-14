@@ -197,7 +197,7 @@ class _MessageBubbleState extends ConsumerState<MessageBubble> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(translation.text),
-                  if ((widget.message.originalText ?? '').isNotEmpty) ...[
+                  if ((widget.message.originalText ?? '').isNotEmpty && !(widget.message.type == MessageType.audio && widget.message.originalLanguage == 'wo')) ...[
                     InkWell(
                       onTap: () => setState(() => _showOriginal = !_showOriginal),
                       child: Padding(
