@@ -71,5 +71,5 @@ class ApiException implements Exception {
   final bool isTranslationUnavailable;
 
   @override
-  String toString() => 'ApiException($statusCode): $message';
+  String toString() => message;
 }
