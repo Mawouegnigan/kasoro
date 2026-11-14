@@ -319,7 +319,7 @@ class _MessageBubbleState extends ConsumerState<MessageBubble> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 GestureDetector(
-                  onLongPress: isMine ? _confirmDelete : null,
+                  behavior: HitTestBehavior.opaque, onLongPress: isMine ? _confirmDelete : null,
                   child: Align(alignment: Alignment.centerLeft, child: content),
                 ),
                 const SizedBox(height: 2),
