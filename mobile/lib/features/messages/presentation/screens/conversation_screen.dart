@@ -1,11 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../contacts/application/contacts_providers.dart';
 import '../../../conversations/application/conversation_members_provider.dart';
 import '../../../conversations/application/conversations_providers.dart';
+import '../../../users/data/models/public_user_model.dart';
 import '../../../users/data/repositories/users_repository.dart';
 import '../../../conversations/data/repositories/conversations_repository.dart';
 import '../../application/messages_providers.dart';
@@ -23,6 +25,49 @@ class ConversationScreen extends ConsumerStatefulWidget {
 
 class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   Timer? _refreshTimer;
+
+  void _showContactSheet(PublicUserModel user) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                user.displayName,
+                style: Theme.of(sheetContext).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 16),
+              Text('Numéro : ${user.phoneNumber}'),
+              const SizedBox(height: 8),
+              Text('Langue préférée : ${user.preferredLanguage}'),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.copy),
+                  label: const Text('Copier le numéro'),
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: user.phoneNumber));
+                    if (!sheetContext.mounted) return;
+                    Navigator.of(sheetContext).pop();
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Numéro copié')),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   Future<void> _markRead({bool refreshList = false}) async {
     try {
@@ -57,16 +102,23 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     final messagesAsync = ref.watch(messagesListProvider(widget.conversationId));
     final String? me = ref.watch(currentUserIdProvider);
     String title = 'Conversation';
+    PublicUserModel? otherUser;
     final members = ref.watch(conversationMembersProvider(widget.conversationId)).valueOrNull;
     if (members != null && me != null && members.length == 2) {
       final String other = members.map((m) => m.userId).firstWhere((id) => id != me, orElse: () => '');
       if (other.isNotEmpty) {
-        title = ref.watch(publicUserProvider(other)).valueOrNull?.displayName ?? 'Conversation';
+        otherUser = ref.watch(publicUserProvider(other)).valueOrNull;
+        title = otherUser?.displayName ?? 'Conversation';
       }
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(
+        title: InkWell(
+          onTap: otherUser == null ? null : () => _showContactSheet(otherUser!),
+          child: Text(title),
+        ),
+      ),
       body: Column(
         children: [
           Expanded(
