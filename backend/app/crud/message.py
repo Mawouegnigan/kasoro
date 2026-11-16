@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.message import Message, MessageType
+from app.models.message_hidden import MessageHidden
 from app.models.message_translation import MessageTranslation
 from app.schemas.message import MessageCreate
 from app.services.translation import TranslationService
@@ -38,11 +39,13 @@ async def get_message(db: AsyncSession, message_id: uuid.UUID) -> Message | None
 
 
 async def list_messages_for_conversation(
-    db: AsyncSession, conversation_id: uuid.UUID, skip: int = 0, limit: int = 50
+    db: AsyncSession, conversation_id: uuid.UUID, skip: int = 0, limit: int = 50,
+    user_id: uuid.UUID | None = None,
 ) -> list[Message]:
     result = await db.execute(
         select(Message)
         .where(Message.conversation_id == conversation_id)
+        .where(~Message.id.in_(select(MessageHidden.message_id).where(MessageHidden.user_id == user_id)))
         .order_by(Message.created_at.desc())
         .offset(skip)
         .limit(limit)

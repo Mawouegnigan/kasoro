@@ -7,6 +7,7 @@ from sqlalchemy.orm import selectinload
 from app.models.conversation import Conversation
 from app.models.conversation_member import ConversationMember
 from app.models.message import Message
+from app.models.message_hidden import MessageHidden
 from app.models.user import User
 from app.schemas.conversation import ConversationCreate, ConversationMemberCreate
 
@@ -48,6 +49,7 @@ async def list_conversations_for_user(db: AsyncSession, user_id: uuid.UUID) -> l
         result = await db.execute(
             select(Message)
             .where(Message.conversation_id == conversation.id)
+            .where(~Message.id.in_(select(MessageHidden.message_id).where(MessageHidden.user_id == user_id)))
             .order_by(Message.created_at.desc())
             .limit(1)
         )
@@ -59,7 +61,7 @@ async def list_conversations_for_user(db: AsyncSession, user_id: uuid.UUID) -> l
             conversation.last_message_sender_id = last.sender_id
             member = (await db.execute(select(ConversationMember).where(ConversationMember.conversation_id == conversation.id, ConversationMember.user_id == user_id))).scalar_one_or_none()
             if member is not None:
-                counted = await db.execute(select(func.count()).select_from(Message).where(Message.conversation_id == conversation.id, Message.sender_id != user_id, Message.created_at > member.last_read_at))
+                counted = await db.execute(select(func.count()).select_from(Message).where(Message.conversation_id == conversation.id, Message.sender_id != user_id, Message.created_at > member.last_read_at, ~Message.id.in_(select(MessageHidden.message_id).where(MessageHidden.user_id == user_id))))
                 conversation.unread_count = counted.scalar_one()
     return conversations
 

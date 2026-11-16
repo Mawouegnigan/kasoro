@@ -5,3 +5,4 @@ from app.models.conversation_member import ConversationMember  # noqa: F401
 from app.models.message import Message, MessageType  # noqa: F401
 from app.models.message_translation import MessageTranslation  # noqa: F401
 from app.models.correction import Correction  # noqa: F401
+from app.models.message_hidden import MessageHidden  # noqa: F401

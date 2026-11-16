@@ -16,6 +16,7 @@ from app.api.deps import (
 from app.crud import message as crud_message
 from app.core.config import get_settings
 from app.models.message import Message
+from app.models.message_hidden import MessageHidden
 from app.models.message_translation import MessageTranslation
 from app.models.user import User
 from app.schemas.message import MessageCreate, MessageInLanguage, MessageRead
@@ -60,7 +61,7 @@ async def list_messages(
     current_user: User = Depends(get_current_user),
 ):
     await require_conversation_member(db, conversation_id, current_user)
-    return await crud_message.list_messages_for_conversation(db, conversation_id, skip, limit)
+    return await crud_message.list_messages_for_conversation(db, conversation_id, skip, limit, current_user.id)
 
 
 def _remove_audio_file(url: str) -> None:
@@ -116,6 +117,23 @@ async def delete_message(
         except OSError:
             pass
     return {"deleted": True}
+
+
+@router.post("/{message_id}/hide")
+async def hide_message(
+    message_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    message = await crud_message.get_message(db, message_id)
+    if message is None:
+        raise HTTPException(status_code=404, detail="Message introuvable")
+    await require_conversation_member(db, message.conversation_id, current_user)
+    if message.sender_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Utilisez la suppression pour vos propres messages")
+    await db.merge(MessageHidden(message_id=message.id, user_id=current_user.id))
+    await db.commit()
+    return {"hidden": True}
 
 
 @router.get("/{message_id}/in/{language}", response_model=MessageInLanguage)

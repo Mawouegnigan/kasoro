@@ -41,6 +41,40 @@ class _MessageBubbleState extends ConsumerState<MessageBubble> {
     super.dispose();
   }
 
+  Future<void> _confirmHide() async {
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Supprimer pour moi ?'),
+        content: const Text(
+          'Ce message disparaîtra de votre conversation. Son auteur le verra toujours.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Supprimer pour moi'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await ref
+          .read(dioClientProvider)
+          .post<Map<String, dynamic>>('/messages/${widget.message.id}/hide');
+      ref.invalidate(messagesListProvider(widget.message.conversationId));
+    } on DioException catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(ApiException.fromDioException(e).message)),
+      );
+    }
+  }
+
   Future<void> _confirmDelete() async {
     final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
     final bool? ok = await showDialog<bool>(
@@ -319,7 +353,7 @@ class _MessageBubbleState extends ConsumerState<MessageBubble> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 GestureDetector(
-                  behavior: HitTestBehavior.opaque, onLongPress: isMine ? _confirmDelete : null,
+                  behavior: HitTestBehavior.opaque, onLongPress: isMine ? _confirmDelete : _confirmHide,
                   child: Align(alignment: Alignment.centerLeft, child: content),
                 ),
                 const SizedBox(height: 2),
