@@ -1,10 +1,14 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db, require_self
+from app.api.routes.messages import _remove_audio_file
 from app.crud import user as crud_user
+from app.models.message import Message
+from app.models.message_translation import MessageTranslation
 from app.models.user import User
 from app.schemas.user import PasswordChange, UserCreate, UserRead, UserUpdate
 
@@ -66,7 +70,27 @@ async def delete_user(
     user = await crud_user.get_user(db, user_id)
     if user is None:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+
+    # Avant de supprimer le compte, on note les fichiers audio de ses messages.
+    result = await db.execute(
+        select(Message.original_audio_url).where(Message.sender_id == user.id)
+    )
+    urls = {u for (u,) in result.all() if u}
+    result = await db.execute(
+        select(MessageTranslation.translated_audio_url)
+        .join(Message, Message.id == MessageTranslation.message_id)
+        .where(Message.sender_id == user.id)
+    )
+    urls |= {u for (u,) in result.all() if u}
+
     await crud_user.delete_user(db, user)
+
+    # Une fois le compte supprimé en base, on efface les fichiers (au mieux).
+    for url in urls:
+        try:
+            _remove_audio_file(url)
+        except OSError:
+            pass
 
 
 @router.post("/{user_id}/password", status_code=204)
