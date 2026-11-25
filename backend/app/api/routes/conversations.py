@@ -30,6 +30,11 @@ async def create_conversation(
         raise HTTPException(
             status_code=400, detail="Une conversation 1:1 doit avoir exactement 2 membres"
         )
+    if data.is_group:
+        if not data.name or not data.name.strip():
+            raise HTTPException(status_code=400, detail="Un groupe doit avoir un nom")
+        if len(set(data.member_ids)) < 3:
+            raise HTTPException(status_code=400, detail="Un groupe doit avoir au moins 3 membres")
     return await crud_conv.create_conversation(db, data)
 
 
@@ -69,6 +74,11 @@ async def add_member(
     conversation = await crud_conv.get_conversation(db, conversation_id)
     if conversation is None:
         raise HTTPException(status_code=404, detail="Conversation introuvable")
+    if not conversation.is_group:
+        raise HTTPException(status_code=400, detail="On ne peut ajouter un membre qu'à un groupe")
+    existing = await crud_conv.list_members(db, conversation_id)
+    if any(m.user_id == data.user_id for m in existing):
+        raise HTTPException(status_code=409, detail="Cette personne fait déjà partie du groupe")
     return await crud_conv.add_member(db, conversation_id, data)
 
 
@@ -90,3 +100,18 @@ async def mark_read(
 ):
     await require_conversation_member(db, conversation_id, current_user)
     await crud_conv.mark_read(db, conversation_id, current_user.id)
+
+
+@router.delete("/{conversation_id}/members/me", status_code=204)
+async def leave_conversation(
+    conversation_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    await require_conversation_member(db, conversation_id, current_user)
+    conversation = await crud_conv.get_conversation(db, conversation_id)
+    if conversation is None:
+        raise HTTPException(status_code=404, detail="Conversation introuvable")
+    if not conversation.is_group:
+        raise HTTPException(status_code=400, detail="On ne peut quitter qu'un groupe")
+    await crud_conv.remove_member(db, conversation_id, current_user.id)

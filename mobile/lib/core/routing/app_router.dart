@@ -11,7 +11,9 @@ import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/contacts/presentation/screens/add_contact_screen.dart';
 import '../../features/contacts/presentation/screens/contacts_screen.dart';
 import '../../features/conversations/presentation/screens/conversations_list_screen.dart';
+import '../../features/conversations/presentation/screens/group_members_screen.dart';
 import '../../features/conversations/presentation/screens/new_conversation_screen.dart';
+import '../../features/conversations/presentation/screens/new_group_screen.dart';
 import '../../features/messages/presentation/screens/conversation_screen.dart';
 
 final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((ref) {
@@ -52,6 +54,13 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/corrections', builder: (context, state) => const ValidationScreen()),
       GoRoute(path: '/contacts', builder: (context, state) => const ContactsScreen()),
       GoRoute(path: '/contacts/add', builder: (context, state) => const AddContactScreen()),
+      GoRoute(path: '/conversations/new-group', builder: (context, state) => const NewGroupScreen()),
+      GoRoute(
+        path: '/conversations/:id/members',
+        builder: (context, state) => GroupMembersScreen(
+          conversationId: state.pathParameters['id']!,
+        ),
+      ),
       GoRoute(
         path: '/conversations/new',
         builder: (context, state) => const NewConversationScreen(),

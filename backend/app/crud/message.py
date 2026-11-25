@@ -1,6 +1,7 @@
 import uuid
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.message import Message, MessageType
@@ -92,8 +93,16 @@ async def get_or_create_translation(
             translated_text=message.original_text or "",
             translated_audio_url=message.original_audio_url,
         )
+        identity_message_id = message.id
         db.add(identity)
-        await db.commit()
+        try:
+            await db.commit()
+        except IntegrityError:
+            await db.rollback()
+            existing = await _get_cached_translation(db, identity_message_id, target_language)
+            if existing:
+                return existing, True
+            raise
         await db.refresh(identity)
         return identity, False
 
@@ -121,8 +130,16 @@ async def get_or_create_translation(
         translated_text=translated_text,
         translated_audio_url=translated_audio_url,
     )
+    translation_message_id = message.id
     db.add(translation)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        cached = await _get_cached_translation(db, translation_message_id, target_language)
+        if cached:
+            return cached, True
+        raise
     await db.refresh(translation)
     return translation, False
 

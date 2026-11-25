@@ -69,6 +69,14 @@ class ConversationsRepository {
     }
   }
 
+  Future<void> leaveConversation(String conversationId) async {
+    try {
+      await _dio.delete<void>('/conversations/$conversationId/members/me');
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
   Future<void> addMember({
     required String conversationId,
     required String userId,

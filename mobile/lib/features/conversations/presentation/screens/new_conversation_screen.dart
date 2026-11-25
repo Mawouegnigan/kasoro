@@ -28,7 +28,16 @@ class NewConversationScreen extends ConsumerWidget {
     });
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Nouvelle conversation')),
+      appBar: AppBar(
+        title: const Text('Nouvelle conversation'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.group_add),
+            tooltip: 'Nouveau groupe',
+            onPressed: () => context.push('/conversations/new-group'),
+          ),
+        ],
+      ),
       body: contactsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text('Erreur : $error')),

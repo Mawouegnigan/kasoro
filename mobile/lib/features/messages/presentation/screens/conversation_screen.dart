@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../contacts/application/contacts_providers.dart';
 import '../../../conversations/application/conversation_members_provider.dart';
 import '../../../conversations/application/conversations_providers.dart';
 import '../../../users/data/models/public_user_model.dart';
 import '../../../users/data/repositories/users_repository.dart';
+import '../../../conversations/data/models/conversation_model.dart';
 import '../../../conversations/data/repositories/conversations_repository.dart';
 import '../../application/messages_providers.dart';
 import '../widgets/message_bubble.dart';
@@ -101,10 +103,18 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   Widget build(BuildContext context) {
     final messagesAsync = ref.watch(messagesListProvider(widget.conversationId));
     final String? me = ref.watch(currentUserIdProvider);
-    String title = 'Conversation';
+    final conversations = ref.watch(conversationsListProvider).valueOrNull;
+    ConversationModel? thisConversation;
+    if (conversations != null) {
+      for (final c in conversations) {
+        if (c.id == widget.conversationId) thisConversation = c;
+      }
+    }
+    final bool isGroup = thisConversation?.isGroup ?? false;
+    String title = isGroup ? (thisConversation?.name ?? 'Groupe') : 'Conversation';
     PublicUserModel? otherUser;
     final members = ref.watch(conversationMembersProvider(widget.conversationId)).valueOrNull;
-    if (members != null && me != null && members.length == 2) {
+    if (!isGroup && members != null && me != null && members.length == 2) {
       final String other = members.map((m) => m.userId).firstWhere((id) => id != me, orElse: () => '');
       if (other.isNotEmpty) {
         otherUser = ref.watch(publicUserProvider(other)).valueOrNull;
@@ -115,7 +125,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     return Scaffold(
       appBar: AppBar(
         title: InkWell(
-          onTap: otherUser == null ? null : () => _showContactSheet(otherUser!),
+          onTap: isGroup
+              ? () => context.push('/conversations/${widget.conversationId}/members')
+              : (otherUser == null ? null : () => _showContactSheet(otherUser!)),
           child: Text(title),
         ),
       ),

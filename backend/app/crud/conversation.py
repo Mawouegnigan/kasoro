@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -102,3 +102,13 @@ async def mark_read(db: AsyncSession, conversation_id: uuid.UUID, user_id: uuid.
     if member is not None:
         member.last_read_at = func.now()
         await db.commit()
+
+
+async def remove_member(db: AsyncSession, conversation_id: uuid.UUID, user_id: uuid.UUID) -> None:
+    await db.execute(
+        delete(ConversationMember).where(
+            ConversationMember.conversation_id == conversation_id,
+            ConversationMember.user_id == user_id,
+        )
+    )
+    await db.commit()
